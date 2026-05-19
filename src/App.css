@@ -45,12 +45,16 @@ body {
 .title {
   font-size: 32px;
   font-weight: 600;
+  width: 500px;
+  height: 38px;
 }
 
 .subtitle {
-  margin-top: 8px;
+  margin: 8px auto 0;
   color: #8d8d8d;
   font-size: 18px;
+  height: 22px;
+  text-align: center;
 }
 
 .form-area {
@@ -66,8 +70,10 @@ body {
 }
 
 .input-group label {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
+  width: 500px;
+  height: 22px;
 }
 
 .input-box {
@@ -75,7 +81,7 @@ body {
 }
 
 .input-box input {
-  width: 100%;
+  width: 500px;
   height: 60px;
   border: 1px solid #dcdcdc;
   border-radius: 14px;
@@ -97,7 +103,7 @@ body {
 }
 
 .next-btn {
-  width: 100%;
+  width: 500px;
   height: 60px;
   border: none;
   border-radius: 14px;
