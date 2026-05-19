@@ -1,7 +1,9 @@
-import logo from './logo.svg';
-import './App.css';
+import "./App.css";
+import { FaRegUser } from "react-icons/fa";
+import { HiOutlineMail } from "react-icons/hi";
 
 function App() {
+
   return (
     <div className="app">
 
@@ -9,9 +11,13 @@ function App() {
 
         <div className="top-area">
 
-          <div className="back-btn">‹</div>
+          <div className="back-btn">
+            ‹
+          </div>
 
-          <h1 className="title">회원가입</h1>
+          <h1 className="title">
+            회원가입
+          </h1>
 
           <p className="subtitle">
             기본 정보를 입력해 주세요.
@@ -23,11 +29,15 @@ function App() {
 
           <div className="input-group">
 
-            <label>이름</label>
+            <label>
+              이름
+            </label>
 
             <div className="input-box">
 
-              <span className="icon">👤</span>
+              <span className="icon">
+                <FaRegUser />
+              </span>
 
               <input
                 type="text"
@@ -40,11 +50,15 @@ function App() {
 
           <div className="input-group">
 
-            <label>이메일</label>
+            <label>
+              이메일
+            </label>
 
             <div className="input-box">
 
-              <span className="icon">✉</span>
+              <span className="icon">
+                <HiOutlineMail />
+              </span>
 
               <input
                 type="email"
