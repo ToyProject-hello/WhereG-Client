@@ -109,10 +109,13 @@ body {
   border-radius: 14px;
   background: #35A853;
   color: #fff;
+
   font-size: 18px;
+  line-height: 22px;
   font-weight: 700;
+
   cursor: pointer;
-  
+
   display: flex;
   align-items: center;
   justify-content: center;
