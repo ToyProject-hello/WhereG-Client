@@ -1,5 +1,11 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   background: #F8F8F8;
   font-family: 'Pretendard', sans-serif;
@@ -7,14 +13,15 @@ body {
 
 .app {
   min-height: 100vh;
+
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .signup-card {
-  width: 600px;
-  height: 540px;
+  width: min(600px, 100%);
+  min-height: 540px;
 
   background: #fff;
 
@@ -31,11 +38,16 @@ body {
 }
 
 .verify-card {
-  height: 648px;
+  min-height: 648px;
+}
+
+.password-card {
+  min-height: 540px;
 }
 
 .top-area {
   position: relative;
+
   text-align: center;
 }
 
@@ -52,24 +64,23 @@ body {
 
 .title {
   width: 500px;
-  height: 38px;
+  max-width: 100%;
 
   font-size: 32px;
-  font-weight: 600;
+  font-weight: 700;
+
+  margin: 0 auto;
 }
 
 .subtitle {
-  margin: 16px auto 0;
+  margin-top: 16px;
 
   color: #8D8D8D;
 
   font-size: 18px;
-
-  text-align: center;
+  font-weight: 600;
 
   line-height: 28px;
-
-  font-weight: 600;
 }
 
 .form-area {
@@ -87,19 +98,18 @@ body {
 }
 
 .input-group label {
-  width: 500px;
-  height: 22px;
-
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .input-box {
   position: relative;
+
+  width: 100%;
 }
 
 .input-box input {
-  width: 500px;
+  width: 100%;
   height: 60px;
 
   border: 1px solid #DCDCDC;
@@ -110,6 +120,8 @@ body {
   font-size: 16px;
 
   outline: none;
+
+  transition: 0.2s;
 }
 
 .input-box input:focus {
@@ -127,8 +139,36 @@ body {
   color: #ADB5BD;
 }
 
+.password-input input {
+  padding: 0 52px 0 20px;
+}
+
+.eye-btn {
+  position: absolute;
+
+  right: 18px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  border: none;
+  background: none;
+
+  cursor: pointer;
+
+  color: #ADB5BD;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eye-btn:hover {
+  color: #666;
+}
+
 .next-btn {
-  width: 500px;
+  width: 100%;
   height: 60px;
 
   border: none;
@@ -142,13 +182,7 @@ body {
 
   cursor: pointer;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  position: relative;
-
-  margin-top: auto;
+  transition: 0.2s;
 }
 
 .next-btn.active {
@@ -156,8 +190,20 @@ body {
   color: white;
 }
 
+.button-group {
+  display: flex;
+
+  gap: 12px;
+
+  margin-top: auto;
+}
+
+.button-group .next-btn {
+  flex: 1;
+}
+
 .email-info {
-  width: 500px;
+  width: 100%;
   height: 60px;
 
   background: #F5F5F5;
@@ -174,15 +220,14 @@ body {
   color: #8C8C8C;
 
   font-size: 15px;
-
   font-weight: 600;
 }
 
 .code-inputs {
-  width: 500px;
-
   display: flex;
   justify-content: space-between;
+
+  gap: 6px;
 }
 
 .code-inputs input {
@@ -195,9 +240,11 @@ body {
   text-align: center;
 
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 700;
 
   outline: none;
+
+  transition: 0.2s;
 }
 
 .code-inputs input:focus {
@@ -205,15 +252,12 @@ body {
 }
 
 .timer-row {
-  width: 500px;
-
   display: flex;
   justify-content: space-between;
 
   color: #9A9A9A;
 
   font-size: 16px;
-
   font-weight: 600;
 }
 
@@ -224,8 +268,6 @@ body {
 }
 
 .resend-row {
-  width: 500px;
-
   display: flex;
   justify-content: space-between;
 
@@ -234,9 +276,6 @@ body {
   border-top: 1px solid #EEEEEE;
 
   font-size: 16px;
-
-  color: black;
-
   font-weight: 600;
 }
 
@@ -260,6 +299,189 @@ body {
   color: #FE4444;
 
   font-size: 16px;
-
   font-weight: 500;
+}
+
+/* 드롭다운 */
+
+.select-wrapper {
+  position: relative;
+
+  width: 100%;
+}
+
+.select-box {
+  width: 100%;
+  height: 60px;
+
+  border: 1px solid #DCDCDC;
+  border-radius: 16px;
+
+  background: white;
+
+  padding: 0 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  font-size: 16px;
+  color: #9A9A9A;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.select-box:hover {
+  border-color: #C8C8C8;
+}
+
+.dropdown {
+  position: absolute;
+
+  top: 68px;
+  left: 0;
+
+  width: 100%;
+
+  background: white;
+
+  border: 1px solid #DCDCDC;
+  border-radius: 16px;
+
+  overflow: hidden;
+
+  z-index: 10;
+
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item {
+  height: 66px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 18px;
+
+  font-size: 16px;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.dropdown-item:hover {
+  background: #E8F5E9;
+}
+
+.dropdown-item.active {
+  background: transparent;
+}
+
+.dropdown-item.active:hover {
+  background: #E8F5E9;
+}
+
+.select-box.selected {
+  color: #000;
+}
+
+.select-box.selected span {
+  color: #000;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.complete-modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 28px;
+  padding: 40px 36px;
+  box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.14);
+  text-align: center;
+  position: relative;
+}
+
+.complete-icon {
+  width: 104px;
+  height: 104px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #35A853;
+}
+
+.complete-modal h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.complete-message {
+  margin: 12px 0 4px;
+  color: #7A7A7A;
+  font-size: 18px;
+}
+
+.name-highlight {
+  color: #35A853;
+}
+
+.complete-subtext {
+  margin: 0 0 24px;
+  color: #7A7A7A;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.close-icon {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #8A8A8A;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 16px;
+  }
+
+  .signup-card {
+    padding: 32px 24px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .code-inputs input {
+    width: 48px;
+    height: 56px;
+
+    font-size: 22px;
+  }
 }
