@@ -73,6 +73,8 @@ function App() {
   useEffect(() => {
     if (page !== "verify") return;
 
+    setTime(300);
+
     const timer = setInterval(() => {
       setTime((prev) => {
         if (prev <= 0) {
@@ -247,7 +249,7 @@ function App() {
             <HiOutlineMail size={20} />
 
             <span>
-              인증코드가 입력하신 이메일로
+              인증코드가 <span className="email-highlight">{email}</span>로
               발송되었습니다.
             </span>
           </div>

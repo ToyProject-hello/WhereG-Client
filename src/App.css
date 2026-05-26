@@ -223,6 +223,10 @@ body {
   font-weight: 600;
 }
 
+.email-highlight {
+  color: #35A853;
+}
+
 .code-inputs {
   display: flex;
   justify-content: space-between;
