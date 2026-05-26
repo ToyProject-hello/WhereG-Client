@@ -70,20 +70,13 @@ function App() {
     passwordConfirm !== "" &&
     password === passwordConfirm;
 
-  useEffect(() => {
+    useEffect(() => {
     if (page !== "verify") return;
 
     setTime(300);
 
     const timer = setInterval(() => {
-      setTime((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-
-        return prev - 1;
-      });
+      setTime((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
