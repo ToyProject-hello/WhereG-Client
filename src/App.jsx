@@ -699,7 +699,7 @@ function App() {
               {name ? (
                 <>
                   <span className="name-highlight">{name}</span>
-                  님 회원가입이 완료되었습니다
+                  님 회원가입이 완료되었습니다.
                 </>
               ) : (
                 "회원가입이 완료되었습니다"
