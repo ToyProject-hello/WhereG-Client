@@ -104,7 +104,8 @@ function App() {
   }
 
   function signupNext() {
-    if (!email.includes("@")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       setEmailError(
         "올바른 이메일 형식이 아닙니다."
       );
