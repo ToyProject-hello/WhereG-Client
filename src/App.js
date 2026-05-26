@@ -1,7 +1,8 @@
 import "./App.css";
 import { FaRegUser } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiChevronLeft } from "react-icons/fi";
+import { FiChevronRight } from "react-icons/fi";
 
 function App() {
   return (
