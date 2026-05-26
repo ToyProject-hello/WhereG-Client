@@ -146,9 +146,11 @@ function App() {
       {page === "signup" && (
         <div className="signup-card">
           <div className="top-area">
-            <div className="back-btn">
-              <FiChevronLeft />
-            </div>
+            {page !== "signup" && (
+              <div className="back-btn" onClick={() => setPage("signup")}>
+                <FiChevronLeft />
+              </div>
+            )}
 
             <h1 className="title">회원가입</h1>
 
