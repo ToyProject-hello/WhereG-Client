@@ -379,11 +379,11 @@ body {
 }
 
 .dropdown-item.active {
-  background: transparent;
-}
-
-.dropdown-item.active:hover {
   background: #E8F5E9;
+  font-weight: 600;
+}
+.dropdown-item.active:hover {
+  background: #C8E6C9;
 }
 
 .select-box.selected {
