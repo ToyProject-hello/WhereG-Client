@@ -1,8 +1,8 @@
 import "./App.css";
-import { useState, useEffect } from "react";
 
 import { FaRegUser } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
+import { useState, useEffect, useRef } from "react";
 
 import {
   FiChevronLeft,
@@ -16,6 +16,7 @@ import { GoCheckCircle } from "react-icons/go";
 
 function App() {
   const [page, setPage] = useState("signup");
+  const inputRefs = useRef([]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -259,18 +260,16 @@ function App() {
               id="code1"
               maxLength={1}
               value={code1}
+              ref={(el) => (inputRefs.current[0] = el)}
               onChange={(e) => {
                 const value = e.target.value;
 
-                if (!/^[0-9]?$/.test(value))
-                  return;
+                if (!/^[0-9]?$/.test(value)) return;
 
                 setCode1(value);
 
-                if (value !== "") {
-                  document
-                    .getElementById("code2")
-                    .focus();
+                if (value) {
+                  inputRefs.current[1]?.focus();
                 }
               }}
             />
@@ -279,18 +278,16 @@ function App() {
               id="code2"
               maxLength={1}
               value={code2}
+              ref={(el) => (inputRefs.current[1] = el)}
               onChange={(e) => {
                 const value = e.target.value;
 
-                if (!/^[0-9]?$/.test(value))
-                  return;
+                if (!/^[0-9]?$/.test(value)) return;
 
                 setCode2(value);
 
-                if (value !== "") {
-                  document
-                    .getElementById("code3")
-                    .focus();
+                if (value) {
+                  inputRefs.current[2]?.focus();
                 }
               }}
             />
@@ -299,18 +296,16 @@ function App() {
               id="code3"
               maxLength={1}
               value={code3}
+              ref={(el) => (inputRefs.current[2] = el)}
               onChange={(e) => {
                 const value = e.target.value;
 
-                if (!/^[0-9]?$/.test(value))
-                  return;
+                if (!/^[0-9]?$/.test(value)) return;
 
                 setCode3(value);
 
-                if (value !== "") {
-                  document
-                    .getElementById("code4")
-                    .focus();
+                if (value) {
+                  inputRefs.current[3]?.focus();
                 }
               }}
             />
@@ -319,18 +314,16 @@ function App() {
               id="code4"
               maxLength={1}
               value={code4}
+              ref={(el) => (inputRefs.current[3] = el)}
               onChange={(e) => {
                 const value = e.target.value;
 
-                if (!/^[0-9]?$/.test(value))
-                  return;
+                if (!/^[0-9]?$/.test(value)) return;
 
                 setCode4(value);
 
-                if (value !== "") {
-                  document
-                    .getElementById("code5")
-                    .focus();
+                if (value) {
+                  inputRefs.current[4]?.focus();
                 }
               }}
             />
@@ -339,18 +332,16 @@ function App() {
               id="code5"
               maxLength={1}
               value={code5}
+              ref={(el) => (inputRefs.current[4] = el)}
               onChange={(e) => {
                 const value = e.target.value;
 
-                if (!/^[0-9]?$/.test(value))
-                  return;
+                if (!/^[0-9]?$/.test(value)) return;
 
                 setCode5(value);
 
-                if (value !== "") {
-                  document
-                    .getElementById("code6")
-                    .focus();
+                if (value) {
+                  inputRefs.current[5]?.focus();
                 }
               }}
             />
@@ -359,11 +350,11 @@ function App() {
               id="code6"
               maxLength={1}
               value={code6}
+              ref={(el) => (inputRefs.current[5] = el)}
               onChange={(e) => {
                 const value = e.target.value;
 
-                if (!/^[0-9]?$/.test(value))
-                  return;
+                if (!/^[0-9]?$/.test(value)) return;
 
                 setCode6(value);
               }}
