@@ -79,7 +79,13 @@ function App() {
     setTime(300);
 
     const timer = setInterval(() => {
-      setTime((prev) => (prev > 0 ? prev - 1 : 0));
+      setTime((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
