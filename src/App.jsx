@@ -166,7 +166,7 @@ function App() {
       {page === "signup" && (
         <div className="signup-card">
           <div className="top-area">
-            <div className="back-btn">
+            <div className="back-btn" onClick={() => {/* 로그인 페이지 이동 등 뒤로가기 동작 정의 */}}>
               <FiChevronLeft />
             </div>
 
