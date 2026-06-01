@@ -1,0 +1,275 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css");
+
+html, body, #root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  box-sizing: border-box;
+  background-color: #f8f9fa;
+}
+
+.flow-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #f8f9fa;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif !important;
+}
+
+.flow-card {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 380px;
+  padding: 44px 36px;
+  border-radius: 24px;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.015);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.flow-title {
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111111;
+  text-align: center;
+  margin: 0 0 36px 0;
+  letter-spacing: -0.5px;
+}
+
+.flow-group {
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.flow-label {
+  display: block;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #000000;
+  letter-spacing: -0.3px;
+}
+
+.flow-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.flow-icon {
+  position: absolute;
+  left: 14px;
+  color: #B4B5B7;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.flow-field {
+  width: 100%;
+  padding: 12px 38px 12px 40px;
+  border: 1px solid #EAEAEA;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  color: #000000;
+  letter-spacing: -0.3px;
+}
+
+.flow-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #828387;
+  margin-top: 10px;
+  margin-bottom: 24px;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+}
+
+.flow-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.flow-checkbox-hidden {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.flow-custom-checkbox {
+  height: 14px;
+  width: 14px;
+  background-color: #ffffff;
+  border: 1px solid #B4B5B7;
+  border-radius: 4px;
+  margin-right: 6px;
+  position: relative;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.flow-checkbox-hidden:checked ~ .flow-custom-checkbox {
+  background-color: #35A853;
+  border-color: #35A853;
+}
+
+.flow-custom-checkbox:after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 6px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.flow-checkbox-hidden:checked ~ .flow-custom-checkbox:after {
+  display: block;
+}
+
+.flow-checkbox-text {
+  font-size: 11px;
+  color: #828387;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+}
+
+.flow-link {
+  cursor: pointer;
+  text-decoration: none;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+}
+
+.flow-link:hover {
+  text-decoration: underline;
+}
+
+.flow-btn-green {
+  width: 100%;
+  height: 46px;
+  background-color: #35A853;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  letter-spacing: -0.3px;
+  transition: background-color 0.2s;
+}
+
+.flow-btn-green:hover {
+  background-color: #2b8c44;
+}
+
+.flow-btn-gray {
+  width: 100%;
+  height: 46px;
+  background-color: #EAEAEA;
+  color: #B4B5B7;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  letter-spacing: -0.3px;
+}
+
+.flow-btn-white {
+  width: 100%;
+  height: 46px;
+  background-color: #ffffff;
+  color: #35A853;
+  border: 1px solid #35A853;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  letter-spacing: -0.3px;
+  transition: background-color 0.2s;
+}
+
+.flow-btn-white:hover {
+  background-color: #f3faf5;
+}
+
+.flow-error {
+  color: #EF4444 !important;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 140% !important;
+  letter-spacing: -0.3px !important;
+  text-align: left;
+  margin: 0 0 16px 0;
+}
+
+.flow-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin: 16px 0;
+}
+
+.flow-divider::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  background-color: #EAEAEA;
+  z-index: 1;
+}
+
+.flow-div-text {
+  background-color: #ffffff;
+  padding: 0 10px;
+  font-size: 11px;
+  color: #B4B5B7;
+  z-index: 2;
+  font-weight: 500;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+}
+
+.flow-footer {
+  text-align: center;
+  font-weight: 500;
+  font-size: 12px;
+  color: #828387;
+  margin-top: 24px;
+  margin-bottom: 0;
+  font-family: "Pretendard Variable", Pretendard, sans-serif !important;
+}
+
+.flow-green-text {
+  color: #35A853;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 6px;
+  text-decoration: underline;
+}
