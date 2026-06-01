@@ -64,7 +64,8 @@ function App() {
     code3 !== "" &&
     code4 !== "" &&
     code5 !== "" &&
-    code6 !== "";
+    code6 !== "" &&
+    time > 0;
 
   const isPassword =
     password !== "" &&
