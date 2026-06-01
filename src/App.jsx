@@ -68,26 +68,30 @@ function App() {
 
   const isPassword =
     password !== "" &&
-    passwordConfirm !== "" &&
-    password === passwordConfirm;
+    passwordConfirm !== "";
 
   useEffect(() => {
     if (page !== "verify") return;
 
+    setCode1(""); setCode2(""); setCode3("");
+    setCode4(""); setCode5(""); setCode6("");
     setTime(300);
 
     const timer = setInterval(() => {
-      setTime((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-
-        return prev - 1;
-      });
+      setTime((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
+  }, [page]);
+
+  useEffect(() => {
+    if (page === "password") {
+      setPassword("");
+      setPasswordConfirm("");
+      setPasswordError("");
+      setShowPassword(false);
+      setShowPasswordConfirm(false);
+    }
   }, [page]);
 
   const minute = String(Math.floor(time / 60)).padStart(
@@ -101,8 +105,10 @@ function App() {
   );
 
   function resendEmail() {
-    setTime(300);
-  }
+  setTime(300);
+  setCode1(""); setCode2(""); setCode3("");
+  setCode4(""); setCode5(""); setCode6("");
+}
 
   function signupNext() {
     if (!email.includes("@")) {
