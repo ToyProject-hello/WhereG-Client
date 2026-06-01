@@ -269,109 +269,33 @@ function App() {
           </div>
 
           <div className="code-inputs">
-            <input
-              id="code1"
-              maxLength={1}
-              value={code1}
-              ref={(el) => (inputRefs.current[0] = el)}
-              onChange={(e) => {
-                const value = e.target.value;
+            {[code1, code2, code3, code4, code5, code6].map((code, index) => (
+              <input
+                key={index}
+                id={`code${index + 1}`}
+                maxLength={1}
+                value={code}
+                ref={(el) => (inputRefs.current[index] = el)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!/^[0-9]?$/.test(value)) return;
 
-                if (!/^[0-9]?$/.test(value)) return;
+                  const setCodes = [setCode1, setCode2, setCode3, setCode4, setCode5, setCode6];
+                  setCodes[index](value);
 
-                setCode1(value);
-
-                if (value) {
-                  inputRefs.current[1]?.focus();
-                }
-              }}
-            />
-
-            <input
-              id="code2"
-              maxLength={1}
-              value={code2}
-              ref={(el) => (inputRefs.current[1] = el)}
-              onChange={(e) => {
-                const value = e.target.value;
-
-                if (!/^[0-9]?$/.test(value)) return;
-
-                setCode2(value);
-
-                if (value) {
-                  inputRefs.current[2]?.focus();
-                }
-              }}
-            />
-
-            <input
-              id="code3"
-              maxLength={1}
-              value={code3}
-              ref={(el) => (inputRefs.current[2] = el)}
-              onChange={(e) => {
-                const value = e.target.value;
-
-                if (!/^[0-9]?$/.test(value)) return;
-
-                setCode3(value);
-
-                if (value) {
-                  inputRefs.current[3]?.focus();
-                }
-              }}
-            />
-
-            <input
-              id="code4"
-              maxLength={1}
-              value={code4}
-              ref={(el) => (inputRefs.current[3] = el)}
-              onChange={(e) => {
-                const value = e.target.value;
-
-                if (!/^[0-9]?$/.test(value)) return;
-
-                setCode4(value);
-
-                if (value) {
-                  inputRefs.current[4]?.focus();
-                }
-              }}
-            />
-
-            <input
-              id="code5"
-              maxLength={1}
-              value={code5}
-              ref={(el) => (inputRefs.current[4] = el)}
-              onChange={(e) => {
-                const value = e.target.value;
-
-                if (!/^[0-9]?$/.test(value)) return;
-
-                setCode5(value);
-
-                if (value) {
-                  inputRefs.current[5]?.focus();
-                }
-              }}
-            />
-
-            <input
-              id="code6"
-              maxLength={1}
-              value={code6}
-              ref={(el) => (inputRefs.current[5] = el)}
-              onChange={(e) => {
-                const value = e.target.value;
-
-                if (!/^[0-9]?$/.test(value)) return;
-
-                setCode6(value);
-              }}
-            />
+                  if (value && index < 5) {
+                    inputRefs.current[index + 1]?.focus();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Backspace" && !code && index > 0) {
+                    const setCodes = [setCode1, setCode2, setCode3, setCode4, setCode5, setCode6];
+                    setCodes[index - 1]("");
+                    inputRefs.current[index - 1]?.focus();
+                  }
+                }}
+              />
+            ))}
           </div>
 
           <div className="timer-row">
