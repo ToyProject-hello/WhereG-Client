@@ -108,7 +108,7 @@ export default function Loginflow() {
                     type="text" 
                     placeholder="이메일을 입력하세요" 
                     className="flow-field" 
-                    value={emailInput}
+                    value={emailInput || "sdkldslkl@gmail.com"}
                     onChange={handleEmailChange}
                     required 
                   />
