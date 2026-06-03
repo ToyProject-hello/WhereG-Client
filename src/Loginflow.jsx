@@ -60,41 +60,41 @@ export default function Loginflow() {
         {page === 2 && (
           <>
             <h2 className="flow-title">로그인</h2>
-            <form onSubmit={(e) => { e.preventDefault(); setPage(1); }}>
-              <div className="flow-group">
-                <label className="flow-label">이메일</label>
-                <div className="flow-wrapper">
-                  <HiOutlineMail className="flow-icon" />
-                  <input type="email" defaultValue="dkanrjsk@gmail.com" className="flow-field" required />
+              <form onSubmit={(e) => { e.preventDefault(); setPage(1); }}>
+                <div className="flow-group">
+                  <label className="flow-label">이메일</label>
+                  <div className="flow-wrapper">
+                    <HiOutlineMail className="flow-icon" />
+                    <input type="email" defaultValue="dkanrjsk@gmail.com" className="flow-field" required />
+                  </div>
                 </div>
-              </div>
-              <div className="flow-group">
-                <label className="flow-label">비밀번호</label>
-                <div className="flow-wrapper">
-                  <HiLockClosed className="flow-icon" style={{left: '15px'}} />
-                  <input type="password" defaultValue="********" className="flow-field" required />
-                  <div className="flow-icon" style={{left: 'auto', right: '14px'}}><HiEye /></div>
+                <div className="flow-group">
+                  <label className="flow-label">비밀번호</label>
+                  <div className="flow-wrapper">
+                    <HiLockClosed className="flow-icon" style={{left: '15px'}} />
+                    <input type="password" defaultValue="********" className="flow-field" required />
+                    <div className="flow-icon" style={{left: 'auto', right: '14px'}}><HiEye /></div>
+                  </div>
                 </div>
-              </div>
-              <div className="flow-options">
-                <label className="flow-checkbox-label">
-                  <input 
-                    type="checkbox" 
-                    className="flow-checkbox-hidden"
-                    checked={keepLoggedIn}
-                    onChange={() => setKeepLoggedIn(!keepLoggedIn)}
-                  />
-                  <span className="flow-custom-checkbox"></span>
-                  <span className="flow-checkbox-text">로그인 상태 유지</span>
-                </label>
-                <span className="flow-link" onClick={() => { setPage(3); setEmailInput(''); }}>비밀번호 찾기</span>
-              </div>
-              <p className="flow-error">아이디 또는 비밀번호가 일치하지 않습니다.</p>
-              <button type="submit" className="flow-btn-green">로그인</button>
-            </form>
-            <p className="flow-footer">계정이 없으신가요?<span className="flow-green-text" onClick={() => setPage(1)}>회원가입</span></p>
-          </>
-        )}
+                <div className="flow-options">
+                  <label className="flow-checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      className="flow-checkbox-hidden"
+                      checked={keepLoggedIn}
+                      onChange={() => setKeepLoggedIn(!keepLoggedIn)}
+                    />
+                    <span className="flow-custom-checkbox"></span>
+                    <span className="flow-checkbox-text">로그인 상태 유지</span>
+                  </label>
+                  <span className="flow-link" onClick={() => { setPage(3); setEmailInput(''); }}>비밀번호 찾기</span>
+                </div>
+                <p className="flow-error">아이디 또는 비밀번호가 일치하지 않습니다.</p>
+                <button type="submit" className="flow-btn-green">로그인</button>
+              </form>
+              <p className="flow-footer">계정이 없으신가요?<span className="flow-green-text" onClick={() => setPage(1)}>회원가입</span></p>
+            </>
+          )}
 
         {page === 3 && (
           <>
