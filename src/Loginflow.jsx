@@ -53,7 +53,7 @@ export default function Loginflow() {
               </div>
               <button type="submit" className="flow-btn-green">로그인</button>
             </form>
-            <p className="flow-footer">계정이 없으신가요?<span className="flow-green-text" onClick={() => setPage(1)}>회원가입</span></p>
+             <p className="flow-footer">계정이 없으신가요?<span className="flow-green-text" onClick={() => alert('회원가입 기능은 준비 중입니다.')}>회원가입</span></p>
           </>
         )}
 
