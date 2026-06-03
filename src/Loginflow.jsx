@@ -10,11 +10,7 @@ export default function Loginflow() {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   const handleEmailChange = (e) => {
-    const value = e.target.value;
-    setEmailInput(value);
-    if (value.trim() !== '' && page === 3) {
-      setPage(4);
-    }
+    setEmailInput(e.target.value);
   };
 
   return (
@@ -103,13 +99,13 @@ export default function Loginflow() {
         {page === 3 && (
           <>
             <h2 className="flow-title">비밀번호 찾기</h2>
-            <form onSubmit={(e) => e.preventDefault()}>
+            <form onSubmit={(e) => { e.preventDefault(); alert('이메일 발송 완료!'); setPage(1); }}>
               <div className="flow-group">
                 <label className="flow-label">이메일</label>
                 <div className="flow-wrapper">
                   <HiOutlineMail className="flow-icon" />
                   <input 
-                    type="email" 
+                    type="text" 
                     placeholder="이메일을 입력하세요" 
                     className="flow-field" 
                     value={emailInput}
@@ -118,31 +114,14 @@ export default function Loginflow() {
                   />
                 </div>
               </div>
-              <button type="button" className="flow-btn-gray" style={{cursor: 'not-allowed'}}>이메일 보내기</button>
-              <div className="flow-divider"><span className="flow-div-text">또는</span></div>
-              <button type="button" className="flow-btn-white" onClick={() => setPage(1)}>로그인 페이지로 돌아가기</button>
-            </form>
-          </>
-        )}
-
-        {page === 4 && (
-          <>
-            <h2 className="flow-title">비밀번호 찾기</h2>
-            <form onSubmit={(e) => { e.preventDefault(); alert('이메일 발송 완료!'); setPage(1); }}>
-              <div className="flow-group">
-                <label className="flow-label">이메일</label>
-                <div className="flow-wrapper">
-                  <HiOutlineMail className="flow-icon" />
-                  <input 
-                    type="email" 
-                    className="flow-field" 
-                    value={emailInput || "sdkldslkl@gmail.com"} 
-                    onChange={handleEmailChange}
-                    required 
-                  />
-                </div>
-              </div>
-              <button type="submit" className="flow-btn-green">이메일 보내기</button>
+              <button 
+                type="submit" 
+                className={emailInput.trim() === '' ? "flow-btn-gray" : "flow-btn-green"} 
+                disabled={emailInput.trim() === ''}
+                style={{ cursor: emailInput.trim() === '' ? 'not-allowed' : 'pointer' }}
+              >
+                이메일 보내기
+              </button>
               <div className="flow-divider"><span className="flow-div-text">또는</span></div>
               <button type="button" className="flow-btn-white" onClick={() => setPage(1)}>로그인 페이지로 돌아가기</button>
             </form>
