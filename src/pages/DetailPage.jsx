@@ -1,4 +1,5 @@
 import { LuChevronLeft } from 'react-icons/lu';
+import { FaUserCircle } from 'react-icons/fa';
 
 import { useState } from 'react';
 
@@ -28,7 +29,10 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
       : 'badgeSearching';
   const postType = isReport ? 'report' : 'claim';
   const comments = post?.comments || [];
-  const commentTotal = comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0);
+  const countReplies = (replies = []) => (
+    replies.reduce((total, reply) => total + 1 + countReplies(reply.replies || []), 0)
+  );
+  const commentTotal = comments.reduce((total, comment) => total + 1 + countReplies(comment.replies || []), 0);
 
   const [commentText, setCommentText] = useState('');
   const [replyText, setReplyText] = useState({});
@@ -41,6 +45,12 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
 
   const canEditPost = currentUser && (currentUser === post?.author || isAdmin);
   const statusOptions = isReport ? ['찾는중', '완료'] : ['보관중', '완료'];
+
+  const handleSubmitKeyDown = (submit) => (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    event.preventDefault();
+    submit();
+  };
 
   const handleStatusSave = () => {
     if (!post?.id) return;
@@ -176,9 +186,9 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
           <div className="commentHeader">댓글 ({commentTotal})</div>
 
           <div>
-            <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="댓글을 입력해 주세요." />
+            <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={handleSubmitKeyDown(handleCommentSubmit)} placeholder="댓글을 입력해 주세요." />
             <div className="commentFormActions">
-              <button className="textAction" onClick={() => { setCommentText(''); }}>취소</button>
+              <button className="textAction greyText" onClick={() => { setCommentText(''); }}>취소</button>
               <button className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
             </div>
           </div>
@@ -186,7 +196,9 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
         {comments.map((c) => (
           <div key={c.id} style={{ marginTop: 12 }}>
             <div className="commentItem">
-              <div className="commentAvatar" />
+              <div className="commentAvatar">
+                <FaUserCircle size={56} />
+              </div>
               <div style={{ flex: 1 }}>
                 <p className="commentName">
                   {c.author}
@@ -194,9 +206,9 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
                 </p>
                 {editingCommentId === c.id ? (
                   <>
-                    <textarea className="textArea" rows={2} value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} />
+                    <textarea className="textArea" rows={2} value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} onKeyDown={handleSubmitKeyDown(() => saveEditComment(c.id))} />
                     <div className="commentFormActions">
-                      <button className="textAction" onClick={cancelEditComment}>취소</button>
+                      <button className="textAction greyText" onClick={cancelEditComment}>취소</button>
                       <button className={editingCommentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={() => saveEditComment(c.id)}>저장</button>
                     </div>
                   </>
@@ -217,9 +229,9 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
                 )}
                 {replyOpen[c.id] && (
                   <div style={{ marginTop: 8 }}>
-                    <textarea className="textArea" rows={2} value={replyText[c.id] || ''} onChange={(e) => setReplyText((r) => ({ ...r, [c.id]: e.target.value }))} placeholder="답글을 입력해 주세요." />
+                    <textarea className="textArea" rows={2} value={replyText[c.id] || ''} onChange={(e) => setReplyText((r) => ({ ...r, [c.id]: e.target.value }))} onKeyDown={handleSubmitKeyDown(() => handleReplySubmit(c.id))} placeholder="답글을 입력해 주세요." />
                     <div className="commentFormActions" style={{ justifyContent: 'flex-end' }}>
-                      <button className="textAction" onClick={() => setReplyOpen((r) => ({ ...r, [c.id]: false }))}>취소</button>
+                      <button className="textAction greyText" onClick={() => setReplyOpen((r) => ({ ...r, [c.id]: false }))}>취소</button>
                       <button className={(replyText[c.id] && replyText[c.id].trim()) ? 'textAction primaryText' : 'textAction disabledText'} onClick={() => handleReplySubmit(c.id)}>등록</button>
                     </div>
                   </div>
@@ -229,13 +241,15 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
                   <div style={{ marginTop: 8, marginLeft: 54 }}>
                     {c.replies.map((rp) => (
                       <div key={rp.id} className="replyItem">
-                        <div className="replyAvatar" />
+                        <div className="replyAvatar">
+                          <FaUserCircle size={56} />
+                        </div>
                         <div className="replyContent">
                           {editingReplyId === rp.id ? (
                             <>
-                              <textarea className="textArea" rows={2} value={editingReplyText} onChange={(e) => setEditingReplyText(e.target.value)} />
+                              <textarea className="textArea" rows={2} value={editingReplyText} onChange={(e) => setEditingReplyText(e.target.value)} onKeyDown={handleSubmitKeyDown(() => saveEditReply(c.id, rp.id))} />
                               <div className="commentFormActions replyFormActions">
-                                <button className="textAction" onClick={cancelEditReply}>취소</button>
+                                <button className="textAction greyText" onClick={cancelEditReply}>취소</button>
                                 <button className={editingReplyText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={() => saveEditReply(c.id, rp.id)}>저장</button>
                               </div>
                             </>
@@ -265,7 +279,9 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
                             <div style={{ marginTop: 8, marginLeft: 40 }}>
                               {rp.replies.map((rpp) => (
                                 <div key={rpp.id} className="replyItem">
-                                  <div className="replyAvatar" />
+                                  <div className="replyAvatar">
+                                    <FaUserCircle size={56} />
+                                  </div>
                                   <div className="replyContent">
                                     <div className="replyHeader">
                                       <span className="commentName">{rpp.author}{rpp.author === post?.author && <span className="authorBadge">작성자</span>}</span>
@@ -288,9 +304,9 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
 
                           {replyOpen[`${c.id}:${rp.id}`] && (
                             <div style={{ marginTop: 8 }}>
-                              <textarea className="textArea" rows={2} value={replyText[`${c.id}:${rp.id}`] || ''} onChange={(e) => setReplyText((r) => ({ ...r, [`${c.id}:${rp.id}`]: e.target.value }))} placeholder="답글을 입력해 주세요." />
+                              <textarea className="textArea" rows={2} value={replyText[`${c.id}:${rp.id}`] || ''} onChange={(e) => setReplyText((r) => ({ ...r, [`${c.id}:${rp.id}`]: e.target.value }))} onKeyDown={handleSubmitKeyDown(() => handleReplySubmit(c.id, rp.id))} placeholder="답글을 입력해 주세요." />
                               <div className="commentFormActions" style={{ justifyContent: 'flex-end' }}>
-                                <button className="textAction" onClick={() => setReplyOpen((r) => ({ ...r, [`${c.id}:${rp.id}`]: false }))}>취소</button>
+                                <button className="textAction greyText" onClick={() => setReplyOpen((r) => ({ ...r, [`${c.id}:${rp.id}`]: false }))}>취소</button>
                                 <button className={(replyText[`${c.id}:${rp.id}`] && replyText[`${c.id}:${rp.id}`].trim()) ? 'textAction primaryText' : 'textAction disabledText'} onClick={() => handleReplySubmit(c.id, rp.id)}>등록</button>
                               </div>
                             </div>

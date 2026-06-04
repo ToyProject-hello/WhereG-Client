@@ -115,9 +115,11 @@ export default function App() {
 
   const addNoticeComment = (noticeId, comment) => {
     let updatedNotice = null;
+    const noticeCommentCount = notices.find((notice) => notice.id === noticeId)?.comments?.length || 0;
+    const newComment = { ...comment, id: comment.id || `ncm-${noticeId}-${noticeCommentCount + 1}` };
     const next = notices.map((notice) => {
       if (notice.id === noticeId) {
-        const comments = notice.comments ? [...notice.comments, { ...comment, id: `ncm-${Date.now()}` }] : [{ ...comment, id: `ncm-${Date.now()}` }];
+        const comments = notice.comments ? [...notice.comments, newComment] : [newComment];
         updatedNotice = { ...notice, comments };
         return updatedNotice;
       }
@@ -128,13 +130,17 @@ export default function App() {
     const updated = next.find((notice) => notice.id === noticeId);
     if (updated) setSelectedPost(updated);
     if (updatedNotice?.author && comment.author && updatedNotice.author !== comment.author) {
-      addNotification(updatedNotice.author, '공지에 새 댓글이 있어요.', comment.text || updatedNotice.title || '내용');
+      addNotification(updatedNotice.author, '공지에 새 댓글이 있어요.', comment.text || updatedNotice.title || '내용', {
+        page: 'noticeDetail',
+        postId: updatedNotice.id,
+        commentId: newComment.id,
+      });
     }
   };
 
-  const addNotification = (recipient, title, subtitle) => {
+  const addNotification = (recipient, title, subtitle, target = null) => {
     if (!recipient) return;
-    const note = { id: `nt-${Date.now()}-${Math.random().toString(36).slice(2)}`, recipient, title, subtitle, time: new Date().toISOString(), read: false };
+    const note = { id: `nt-${Date.now()}-${Math.random().toString(36).slice(2)}`, recipient, title, subtitle, target, time: new Date().toISOString(), read: false };
     setNotifications((current) => {
       const next = [note, ...sanitizeNotifications(current)];
       try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
@@ -161,6 +167,48 @@ export default function App() {
     try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
       // Ignore storage failures so the notification menu can still update.
     }
+  };
+
+  const markNotificationRead = (notificationId) => {
+    if (!notificationId) return;
+    const next = sanitizeNotifications(notifications).map((n) => (
+      n.id === notificationId ? { ...n, read: true } : n
+    ));
+    setNotifications(next);
+    try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
+      // Ignore storage failures so navigation can continue.
+    }
+  };
+
+  const scrollToCommentSection = () => {
+    window.setTimeout(() => {
+      document.querySelector('.commentSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
+  const handleNotificationOpen = (notification) => {
+    markNotificationRead(notification?.id);
+    const target = notification?.target;
+    if (!target?.page || !target?.postId) {
+      setShowNotifications(false);
+      showError('이동할 알림 위치를 찾을 수 없습니다');
+      return;
+    }
+
+    const targetPost = target.page === 'noticeDetail'
+      ? notices.find((notice) => notice.id === target.postId)
+      : target.postType === 'claim' || target.page === 'claimDetail'
+        ? claims.find((claim) => claim.id === target.postId)
+        : reports.find((report) => report.id === target.postId);
+
+    if (!targetPost) {
+      setShowNotifications(false);
+      showError('해당 글을 찾을 수 없습니다');
+      return;
+    }
+
+    goToPage(target.page, targetPost);
+    scrollToCommentSection();
   };
 
   const updatePost = (postType, postId, updates) => {
@@ -196,7 +244,12 @@ export default function App() {
       setSelectedPost(updated);
     }
     if (updated && updated.author && comment.author && updated.author !== comment.author) {
-      addNotification(updated.author, `${postType === 'claim' ? '제보한' : '신고한'} 글에 새 댓글이 있어요.`, comment.text || updated.title || '내용');
+      addNotification(updated.author, `${postType === 'claim' ? '제보한' : '신고한'} 글에 새 댓글이 있어요.`, comment.text || updated.title || '내용', {
+        page: postType === 'claim' ? 'claimDetail' : 'reportDetail',
+        postType,
+        postId,
+        commentId: newComment.id,
+      });
     }
   };
 
@@ -268,11 +321,18 @@ export default function App() {
     if (updated) {
       const commentObj = repliedComment || (updated.comments || []).find((c) => c.id === commentId);
       const replyRecipient = notifiedAuthor || commentObj?.author;
+      const target = {
+        page: postType === 'claim' ? 'claimDetail' : 'reportDetail',
+        postType,
+        postId,
+        commentId,
+        replyId,
+      };
       if (replyRecipient && reply.author && replyRecipient !== reply.author) {
-        addNotification(replyRecipient, '내 댓글에 답글이 달렸어요.', reply.text || updated.title || '내용');
+        addNotification(replyRecipient, '내 댓글에 답글이 달렸어요.', reply.text || updated.title || '내용', target);
       }
       if (updated.author && reply.author && updated.author !== reply.author && updated.author !== replyRecipient) {
-        addNotification(updated.author, `${postType === 'claim' ? '제보한' : '신고한'} 글에 새 답글이 있어요.`, reply.text || updated.title || '내용');
+        addNotification(updated.author, `${postType === 'claim' ? '제보한' : '신고한'} 글에 새 답글이 있어요.`, reply.text || updated.title || '내용', target);
       }
     }
   };
@@ -535,7 +595,7 @@ export default function App() {
         />
       )}
 
-      {showNotifications && <NotificationDropdown currentUser={currentUser} notifications={notifications} onClear={() => markNotificationsReadForUser(currentUser)} />}
+      {showNotifications && <NotificationDropdown currentUser={currentUser} notifications={notifications} onClear={() => markNotificationsReadForUser(currentUser)} onOpen={handleNotificationOpen} />}
       {showProfileMenu && currentUser && <ProfileMenu onSelect={handleProfileSelect} onClose={() => setShowProfileMenu(false)} />}
       {showLoginModal && (
         <div className="modalOverlay" onClick={() => { setShowLoginModal(false); setLoginName(''); }}>

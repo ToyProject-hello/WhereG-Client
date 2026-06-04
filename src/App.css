@@ -512,6 +512,29 @@ body {
   width: 100%;
 }
 
+.listingPage {
+  min-height: calc(100vh - 88px - 34px - 96px);
+  display: flex;
+  flex-direction: column;
+}
+
+.listingPage .cardGrid {
+  margin-bottom: auto;
+}
+
+.listingPage .pagination {
+  margin-top: auto;
+  padding-top: 52px;
+}
+
+.emptySearchMessage {
+  color: #e03131;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  margin: 42px 0 auto;
+}
+
 .pageHeader {
   text-align: left;
   margin-bottom: 22px;
@@ -587,6 +610,8 @@ body {
   display: flex;
   gap: 16px;
   align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .textAction {
@@ -671,11 +696,11 @@ body {
 }
 
 .replyAvatar {
-  width: 34px;
-  height: 34px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background-color: #e8ecef;
-  flex-shrink: 0;
+  flex: 0 0 56px;
 }
 
 .replyContent {
@@ -711,6 +736,16 @@ body {
   border: 1px solid #f0f4f8;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.02);
   text-align: left;
+}
+
+.noticeDetailGrid {
+  display: grid;
+  gap: 28px;
+}
+
+.noticeDetailItem {
+  display: grid;
+  gap: 10px;
 }
 
 .noticeHead {
@@ -1003,6 +1038,7 @@ body {
   height: 56px;
   border-radius: 50%;
   background-color: #dcdee1;
+  flex: 0 0 56px;
 }
 
 .commentName {
@@ -1069,10 +1105,17 @@ body {
 .notificationItem {
   display: flex;
   gap: 14px;
+  width: 100%;
   padding: 18px 20px 18px;
   border-bottom: none;
+  border: none;
   border-radius: 8px;
   margin-bottom: 16px;
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .notificationItem.highlight {

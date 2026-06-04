@@ -1,4 +1,5 @@
 import { LuChevronLeft } from 'react-icons/lu';
+import { FaUserCircle } from 'react-icons/fa';
 import { useState } from 'react';
 
 export default function NoticeDetail({ post, onBack, addComment, currentUser, onRequireLogin }) {
@@ -20,6 +21,12 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
     setCommentText('');
   };
 
+  const handleSubmitKeyDown = (submit) => (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    event.preventDefault();
+    submit();
+  };
+
   return (
     <div className="pageContent">
       <button className="backButton" onClick={onBack}>
@@ -28,12 +35,12 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
       <div className="detailCard">
         <div className="detailBody">
           <h2 className="detailTitle">{post?.title || '공지 제목 없음'}</h2>
-          <div className="detailGrid">
-            <div>
+          <div className="noticeDetailGrid">
+            <div className="noticeDetailItem">
               <p className="detailLabel">날짜</p>
               <p className="detailValue">{post?.date || '알 수 없음'}</p>
             </div>
-            <div>
+            <div className="noticeDetailItem">
               <p className="detailLabel">상세 내용</p>
               <p className="detailValue" style={{ whiteSpace: 'pre-wrap', fontWeight: 400, color: '#4a5568' }}>
                 {post?.description || '설명이 없습니다.'}
@@ -47,16 +54,18 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
       <div className="commentSection">
         <div className="commentHeader">댓글 ({(post?.comments || []).length})</div>
         <div>
-          <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="댓글을 입력해 주세요." />
+          <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={handleSubmitKeyDown(handleCommentSubmit)} placeholder="댓글을 입력해 주세요." />
           <div className="commentFormActions">
-            <button className="textAction" onClick={() => setCommentText('')}>취소</button>
+            <button className="textAction greyText" onClick={() => setCommentText('')}>취소</button>
             <button className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
           </div>
         </div>
         {(post?.comments || []).map((c) => (
           <div key={c.id} style={{ marginTop: 12 }}>
             <div className="commentItem">
-              <div className="commentAvatar" />
+              <div className="commentAvatar">
+                <FaUserCircle size={56} />
+              </div>
               <div style={{ flex: 1 }}>
                 <p className="commentName">{c.author}</p>
                 <p className="commentText">{c.text}</p>
