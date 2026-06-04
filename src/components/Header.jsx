@@ -3,7 +3,7 @@ import { FaUserCircle } from 'react-icons/fa';
 import { HiMapPin } from 'react-icons/hi2';
 import { LuChevronDown } from 'react-icons/lu';
 
-export default function Header({ activePage, onNavigate, onBellClick, onProfileClick, currentUser }) {
+export default function Header({ activePage, onNavigate, onBellClick, onProfileClick, currentUser, unreadCount = 0 }) {
   const navItems = [
     { id: 'home', label: '홈' },
     { id: 'report', label: '분실물 신고' },
@@ -33,6 +33,7 @@ export default function Header({ activePage, onNavigate, onBellClick, onProfileC
       <div className="headerRight">
         <button className="iconBtn" onClick={onBellClick} aria-label="알림">
           <FaRegBell size={22} />
+          {unreadCount > 0 && <span className="bellDot" />}
         </button>
         <div className="profile" onClick={onProfileClick}>
           <FaUserCircle size={24} />

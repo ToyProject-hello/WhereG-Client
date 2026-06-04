@@ -14,6 +14,33 @@ import LostReportForm from './pages/LostReportForm';
 import LostClaimForm from './pages/LostClaimForm';
 import DetailPage from './pages/DetailPage';
 
+const initialNotifications = [
+  {
+    id: 'demo-note-1',
+    recipient: '추혜인',
+    title: '내 댓글에 답글이 달렸어요.',
+    subtitle: '내용',
+    time: '2026-06-04T01:00:00.000Z',
+    read: false,
+  },
+  {
+    id: 'demo-note-2',
+    recipient: '추혜인',
+    title: '제보한 글에 새 댓글이 있어요.',
+    subtitle: '제가 본 것 같아요',
+    time: '2026-06-04T00:50:00.000Z',
+    read: false,
+  },
+  {
+    id: 'demo-note-3',
+    recipient: '추혜인',
+    title: '제보한 글에 새 댓글이 있어요.',
+    subtitle: '내용',
+    time: '2026-06-04T00:00:00.000Z',
+    read: false,
+  },
+];
+
 export default function App() {
   const [page, setPage] = useState('home');
   const [reports, setReports] = useState(() => {
@@ -55,17 +82,19 @@ export default function App() {
   const [notifications, setNotifications] = useState(() => {
     try {
       const raw = localStorage.getItem('wg_notifications');
-      return raw ? JSON.parse(raw) : [];
+      return raw ? JSON.parse(raw) : initialNotifications;
     } catch {
-      return [];
+      return initialNotifications;
     }
   });
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginName, setLoginName] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const isAdmin = currentUser === '관리자' || currentUser === 'admin';
+  const unreadCount = currentUser ? notifications.filter((n) => n.recipient === currentUser).length : 0;
 
   const showError = (message) => {
     setStatusMessage(message);
@@ -127,6 +156,14 @@ export default function App() {
     }
   };
 
+  const updateSelectedPostComments = (postId, buildComments) => {
+    if (!selectedPost || selectedPost.id !== postId) return null;
+    const comments = buildComments(selectedPost.comments || []);
+    const updated = { ...selectedPost, comments };
+    setSelectedPost(updated);
+    return updated;
+  };
+
   const clearNotificationsForUser = (user) => {
     if (!user) return;
     const next = (notifications || []).filter((n) => n.recipient !== user);
@@ -151,20 +188,25 @@ export default function App() {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
+    const newComment = { ...comment, id: `cm-${Date.now()}`, replies: [] };
+    let updated = null;
     const next = target.map((p) => {
       if (p.id === postId) {
-        const comments = p.comments ? [...p.comments, { ...comment, id: `cm-${Date.now()}`, replies: [] }] : [{ ...comment, id: `cm-${Date.now()}`, replies: [] }];
-        return { ...p, comments };
+        const comments = p.comments ? [...p.comments, newComment] : [newComment];
+        updated = { ...p, comments };
+        return updated;
       }
       return p;
     });
     setter(next);
     localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
-    setSelectedPost(updated);
-    // 알림: 내 게시물에 댓글이 달렸을 때 (작성자 본인 제외)
+    if (!updated) {
+      updated = updateSelectedPostComments(postId, (comments) => [...comments, newComment]);
+    } else {
+      setSelectedPost(updated);
+    }
     if (updated && updated.author && comment.author && updated.author !== comment.author) {
-      addNotification(updated.author, '내 게시물에 새 댓글이 달렸습니다.', updated.title || '')
+      addNotification(updated.author, `${postType === 'claim' ? '제보한' : '신고한'} 글에 새 댓글이 있어요.`, comment.text || updated.title || '내용');
     }
   };
 
@@ -172,19 +214,23 @@ export default function App() {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
+    let updated = null;
+    let repliedComment = null;
+    const replyId = `rpl-${Date.now()}`;
     const next = target.map((p) => {
       if (p.id === postId) {
         const comments = (p.comments || []).map((c) => {
           if (c.id === commentId) {
+            repliedComment = c;
             if (!parentReplyId) {
-              const newReply = { ...reply, id: `rpl-${Date.now()}`, replies: [] };
+              const newReply = { ...reply, id: replyId, replies: [] };
               const replies = [...(c.replies || []), newReply];
               return { ...c, replies };
             }
             // add nested reply under a specific reply
             const replies = (c.replies || []).map((r) => {
               if (r.id === parentReplyId) {
-                const newNested = { ...reply, id: `rpl-${Date.now()}`, replies: [] };
+                const newNested = { ...reply, id: replyId, replies: [] };
                 const rReplies = [...(r.replies || []), newNested];
                 return { ...r, replies: rReplies };
               }
@@ -194,19 +240,34 @@ export default function App() {
           }
           return c;
         });
-        return { ...p, comments };
+        updated = { ...p, comments };
+        return updated;
       }
       return p;
     });
     setter(next);
     localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
-    setSelectedPost(updated);
-    // 알림: 내 댓글에 대댓글이 달렸을 때 (댓글 작성자 본인 제외)
+    if (!updated) {
+      updated = updateSelectedPostComments(postId, (comments) => comments.map((c) => {
+        if (c.id !== commentId) return c;
+        repliedComment = c;
+        if (!parentReplyId) {
+          return { ...c, replies: [...(c.replies || []), { ...reply, id: replyId, replies: [] }] };
+        }
+        return {
+          ...c,
+          replies: (c.replies || []).map((r) => (
+            r.id === parentReplyId ? { ...r, replies: [...(r.replies || []), { ...reply, id: replyId, replies: [] }] } : r
+          )),
+        };
+      }));
+    } else {
+      setSelectedPost(updated);
+    }
     if (updated) {
-      const commentObj = (updated.comments || []).find((c) => c.id === commentId);
+      const commentObj = repliedComment || (updated.comments || []).find((c) => c.id === commentId);
       if (commentObj && commentObj.author && reply.author && commentObj.author !== reply.author) {
-        addNotification(commentObj.author, '내 댓글에 새 답글이 달렸습니다.', updated.title || '');
+        addNotification(commentObj.author, '내 댓글에 답글이 달렸어요.', reply.text || updated.title || '내용');
       }
     }
   };
@@ -343,12 +404,21 @@ export default function App() {
       setCurrentUser(null);
       localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
       setPage('home');
+      showError('로그아웃되었습니다');
     }
     if (action === 'withdraw') {
-      setCurrentUser(null);
-      localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
-      setPage('home');
+      setShowWithdrawModal(true);
     }
+  };
+
+  const handleWithdrawConfirm = () => {
+    setCurrentUser(null);
+    localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
+    setShowWithdrawModal(false);
+    setShowPasswordModal(false);
+    setShowNotifications(false);
+    setPage('home');
+    showError('회원탈퇴가 완료되었습니다');
   };
 
   const handleLogin = (name) => {
@@ -368,6 +438,7 @@ export default function App() {
       <Header
         activePage={getActivePage()}
         currentUser={currentUser}
+        unreadCount={unreadCount}
         onNavigate={goToPage}
         onBellClick={() => {
           setShowNotifications((cur) => !cur);
@@ -433,7 +504,7 @@ export default function App() {
       />
 
       {showNotifications && <NotificationDropdown currentUser={currentUser} notifications={notifications} onClear={() => clearNotificationsForUser(currentUser)} />}
-      {showProfileMenu && currentUser && <ProfileMenu onSelect={handleProfileSelect} />}
+      {showProfileMenu && currentUser && <ProfileMenu onSelect={handleProfileSelect} onClose={() => setShowProfileMenu(false)} />}
       {showLoginModal && (
         <div className="modalOverlay" onClick={() => { setShowLoginModal(false); setLoginName(''); }}>
           <div className="modalCard" onClick={(e) => e.stopPropagation()}>
@@ -486,6 +557,34 @@ export default function App() {
               </button>
               <button className="primaryButton" onClick={() => setShowPasswordModal(false)}>
                 변경하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWithdrawModal && (
+        <div className="modalOverlay" onClick={() => setShowWithdrawModal(false)}>
+          <div className="modalCard withdrawModal" onClick={(e) => e.stopPropagation()}>
+            <div className="modalHeader">
+              <h3>회원탈퇴</h3>
+              <button className="modalClose" onClick={() => setShowWithdrawModal(false)}>
+                ✕
+              </button>
+            </div>
+            <p className="modalText">
+              탈퇴하면 현재 계정으로 다시 이용할 수 없습니다.
+              계속 진행하시겠습니까?
+            </p>
+            <div className="withdrawNotice">
+              작성한 게시글과 댓글은 서비스 화면에 남을 수 있으며, 계정 정보만 로그아웃 상태로 처리됩니다.
+            </div>
+            <div className="modalFooter">
+              <button className="secondaryButton" onClick={() => setShowWithdrawModal(false)}>
+                취소
+              </button>
+              <button className="dangerButton" onClick={handleWithdrawConfirm}>
+                탈퇴하기
               </button>
             </div>
           </div>

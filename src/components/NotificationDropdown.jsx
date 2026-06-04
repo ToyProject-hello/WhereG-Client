@@ -9,15 +9,11 @@ export default function NotificationDropdown({ currentUser, notifications = null
     if (!time) return '시간';
     const date = new Date(time);
     if (Number.isNaN(date.getTime())) return time;
-    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (diff < 60) return '방금 전';
-    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-    return date.toLocaleDateString('ko-KR');
+    return date.toLocaleString('ko-KR');
   };
 
   const userItems = notifications ? notifications.filter((n) => n.recipient === currentUser) : [];
-  const items = userItems.length > 0 ? userItems : demo;
+  const items = notifications === null ? demo : userItems;
 
   return (
     <div className="notificationDropdown">
@@ -25,7 +21,7 @@ export default function NotificationDropdown({ currentUser, notifications = null
         <strong>알림</strong>
         <button type="button" className="notificationClear" onClick={() => onClear && onClear()}>{'모두 읽음'}</button>
       </div>
-      {!currentUser ? (
+      {!currentUser || items.length === 0 ? (
         <div className="notificationItem empty">
           <div className="notificationTitle">아무것도 없습니다</div>
         </div>

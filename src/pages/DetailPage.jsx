@@ -27,11 +27,7 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
       ? 'badgeKeeping'
       : 'badgeSearching';
   const postType = isReport ? 'report' : 'claim';
-  const comments = post?.comments || [
-    { id: 'sample-1', author: '양지우', text: '안녕하세요', time: '2026-06-04T08:00:00.000Z', replies: [
-      { id: 'sample-2', author: post?.author || currentUser || '추혜인', text: '안녕하세요', time: '2026-06-04T08:00:00.000Z', replies: [] }
-    ] }
-  ];
+  const comments = post?.comments || [];
   const commentTotal = comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0);
 
   const [commentText, setCommentText] = useState('');
