@@ -1,6 +1,6 @@
 import { LuChevronLeft } from 'react-icons/lu';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const getTimeAgo = (timeString) => {
   const now = new Date();
@@ -26,8 +26,13 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
     : statusValue === '보관중'
       ? 'badgeKeeping'
       : 'badgeSearching';
-  const detailTitle = isReport ? '분실물 신고' : '분실물 제보';
   const postType = isReport ? 'report' : 'claim';
+  const comments = post?.comments || [
+    { id: 'sample-1', author: '양지우', text: '안녕하세요', time: '2026-06-04T08:00:00.000Z', replies: [
+      { id: 'sample-2', author: post?.author || currentUser || '추혜인', text: '안녕하세요', time: '2026-06-04T08:00:00.000Z', replies: [] }
+    ] }
+  ];
+  const commentTotal = comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0);
 
   const [commentText, setCommentText] = useState('');
   const [replyText, setReplyText] = useState({});
@@ -35,13 +40,8 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [editingReplyId, setEditingReplyId] = useState(null);
-  const [editingReplyCommentId, setEditingReplyCommentId] = useState(null);
   const [editingReplyText, setEditingReplyText] = useState('');
   const [editStatus, setEditStatus] = useState(statusValue);
-
-  useEffect(() => {
-    setEditStatus(statusValue);
-  }, [statusValue]);
 
   const canEditPost = currentUser && (currentUser === post?.author || isAdmin);
   const statusOptions = isReport ? ['찾는중', '완료'] : ['보관중', '완료'];
@@ -77,7 +77,6 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
     setEditingCommentId(comment.id);
     setEditingCommentText(comment.text);
     setEditingReplyId(null);
-    setEditingReplyCommentId(null);
   };
 
   const cancelEditComment = () => {
@@ -98,14 +97,12 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
       return;
     }
     setEditingReplyId(reply.id);
-    setEditingReplyCommentId(commentId);
     setEditingReplyText(reply.text);
     setEditingCommentId(null);
   };
 
   const cancelEditReply = () => {
     setEditingReplyId(null);
-    setEditingReplyCommentId(null);
     setEditingReplyText('');
   };
 
@@ -137,71 +134,60 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
       </button>
 
       <div className="detailCard">
-        <div
-          className="detailImage"
-          style={post && post.image ? { backgroundImage: `url(${post.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-        />
-        <span className={`badge ${badgeClass}`}>{post && post.status ? post.status : statusLabel}</span>
-        {canEditPost && (
-          <div className="statusEditRow">
-            <select className="textInput" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
-              {statusOptions.map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-            <button className="textAction primaryText" onClick={handleStatusSave}>상태 저장</button>
-          </div>
-        )}
-        <div className="detailBody">
-          <h2 className="detailTitle">{post && post.title ? post.title : '제목'}</h2>
-          <div className="detailGrid">
-            <div>
-              <p className="detailLabel">{isReport ? '분실 위치' : '찾은 위치'}</p>
-              <p className="detailValue">{post && post.place ? post.place : '내용'}</p>
+        <div className="detailHero">
+          <div
+            className="detailImage"
+            style={post && post.image ? { backgroundImage: `url(${post.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+          />
+          <div className="detailBody">
+            <span className={`detailStatus ${badgeClass}`}>{post && post.status ? post.status : statusLabel}</span>
+            <h2 className="detailTitle">{post && post.title ? post.title : '제목'}</h2>
+            <div className="detailRows">
+              <div className="detailRow">
+                <p className="detailLabel">{isReport ? '분실 위치' : '찾은 위치'}</p>
+                <p className="detailValue">{post && post.place ? post.place : '내용'}</p>
+              </div>
+              <div className="detailRow">
+                <p className="detailLabel">{isReport ? '분실 시간' : '제보 시간'}</p>
+                <p className="detailValue">{post && post.date ? post.date : '내용'}</p>
+              </div>
+              <div className="detailRow">
+                <p className="detailLabel">작성자</p>
+                <p className="detailValue">{post && post.author ? post.author : '내용'}</p>
+              </div>
             </div>
-            <div>
-              <p className="detailLabel">작성 시간</p>
-              <p className="detailValue">{post && post.date ? post.date : '내용'}</p>
-            </div>
-            <div>
-              <p className="detailLabel">작성자</p>
-              <p className="detailValue">{post && post.author ? post.author : '내용'}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="sectionDivider" />
-      <div className="detailDescription">
-        <h3>상세 설명</h3>
-        <div className="detailInfoGrid">
-          <div className="detailInfoItem">
-            <span className="detailInfoLabel">분실물 이름</span>
-            <span className="detailInfoText">{post?.title || '알 수 없음'}</span>
-          </div>
-          <div className="detailInfoItem">
-            <span className="detailInfoLabel">{isReport ? '분실한 장소' : '찾은 장소'}</span>
-            <span className="detailInfoText">{post?.place || '알 수 없음'}</span>
-          </div>
-          <div className="detailInfoItem">
-            <span className="detailInfoLabel">{isReport ? '하고 싶은 말' : '특징'}</span>
-            <span className="detailInfoText">{post?.note || post?.feature || '알 수 없음'}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="commentSection">
-        <div className="commentHeader">댓글 ({(post && post.comments) ? post.comments.length : 0})</div>
-
-        <div>
-          <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="댓글을 입력해 주세요." />
-          <div className="commentFormActions">
-            <button className="textAction" onClick={() => { setCommentText(''); }}>취소</button>
-            <button className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
+            {canEditPost && (
+              <div className="statusEditRow">
+                <select className="textInput" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+                <button className="textAction primaryText" onClick={handleStatusSave}>상태 저장</button>
+              </div>
+            )}
           </div>
         </div>
 
-        {(post && post.comments) ? post.comments.map((c) => (
+        <div className="sectionDivider" />
+        <div className="detailDescription">
+          <h3>상세 설명</h3>
+          <p className="descriptionNote">{post?.note || post?.feature || '안녕하세요. 최형진입니다....\n반가워요?'}</p>
+        </div>
+
+        <div className="sectionDivider" />
+        <div className="commentSection">
+          <div className="commentHeader">댓글 ({commentTotal})</div>
+
+          <div>
+            <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="댓글을 입력해 주세요." />
+            <div className="commentFormActions">
+              <button className="textAction" onClick={() => { setCommentText(''); }}>취소</button>
+              <button className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
+            </div>
+          </div>
+
+        {comments.map((c) => (
           <div key={c.id} style={{ marginTop: 12 }}>
             <div className="commentItem">
               <div className="commentAvatar" />
@@ -322,7 +308,8 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
               </div>
             </div>
           </div>
-        )) : null}
+        ))}
+        </div>
       </div>
     </div>
   );

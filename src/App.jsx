@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import FabMenu from './components/FabMenu';
@@ -20,7 +20,7 @@ export default function App() {
     try {
       const raw = localStorage.getItem('wg_reports');
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
@@ -28,7 +28,7 @@ export default function App() {
     try {
       const raw = localStorage.getItem('wg_claims');
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
@@ -36,7 +36,7 @@ export default function App() {
     try {
       const raw = localStorage.getItem('wg_notices');
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
@@ -47,7 +47,7 @@ export default function App() {
       const raw = localStorage.getItem('wg_user');
       if (raw === 'WG_LOGGED_OUT') return null;
       return raw ? JSON.parse(raw) : '추혜인';
-    } catch (e) {
+    } catch {
       return '추혜인';
     }
   });
@@ -56,7 +56,7 @@ export default function App() {
     try {
       const raw = localStorage.getItem('wg_notifications');
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
@@ -122,14 +122,18 @@ export default function App() {
     const note = { id: `nt-${Date.now()}`, recipient, title, subtitle, time: new Date().toISOString(), read: false };
     const next = [note, ...notifications];
     setNotifications(next);
-    try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
+      // Ignore storage failures so comments still update in memory.
+    }
   };
 
   const clearNotificationsForUser = (user) => {
     if (!user) return;
     const next = (notifications || []).filter((n) => n.recipient !== user);
     setNotifications(next);
-    try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
+      // Ignore storage failures so the notification menu can still clear.
+    }
   };
 
   const updatePost = (postType, postId, updates) => {
@@ -359,33 +363,6 @@ export default function App() {
     setLoginName('');
   };
 
-  const renderPage = () => {
-    switch (page) {
-      case 'home':
-        return <Home onCardClick={goToPage} reports={reports} claims={claims} />;
-      case 'report':
-        return <LostReport onCardClick={goToPage} />;
-      case 'claim':
-        return <LostClaim onCardClick={goToPage} />;
-      case 'notice':
-        return <Notice onWrite={goToPage} notices={notices} isAdmin={isAdmin} currentUser={currentUser} />;
-      case 'noticeWrite':
-        return <NoticeWrite onSubmit={(notice) => { addNotice(notice); goToPage('notice'); }} />;
-      case 'reportForm':
-        return <LostReportForm onSubmit={() => goToPage('report')} />;
-      case 'claimForm':
-        return <LostClaimForm onSubmit={() => goToPage('claim')} />;
-      case 'reportDetail':
-        return <DetailPage type="reportDetail" onBack={() => goToPage('report')} />;
-      case 'claimDetail':
-        return <DetailPage type="claimDetail" onBack={() => goToPage('claim')} />;
-      case 'noticeDetail':
-        return <NoticeDetail post={selectedPost} onBack={() => goToPage('notice')} addComment={addNoticeComment} currentUser={currentUser} onRequireLogin={showError} />;
-      default:
-        return <Home onCardClick={goToPage} />;
-    }
-  };
-
   return (
     <div className="container">
       <Header
@@ -436,9 +413,9 @@ export default function App() {
             case 'noticeDetail':
               return <NoticeDetail post={selectedPost} onBack={() => goToPage('notice')} addComment={addNoticeComment} currentUser={currentUser} onRequireLogin={showError} />;
             case 'reportForm':
-              return <LostReportForm onSubmit={(post) => { addReport(post); goToPage('report'); }} currentUser={currentUser} onRequireLogin={showError} />;
+              return <LostReportForm onSubmit={(post) => { addReport(post); goToPage('report'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('report')} />;
             case 'claimForm':
-              return <LostClaimForm onSubmit={(post) => { addClaim(post); goToPage('claim'); }} currentUser={currentUser} onRequireLogin={showError} />;
+              return <LostClaimForm onSubmit={(post) => { addClaim(post); goToPage('claim'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('claim')} />;
             case 'reportDetail':
               return <DetailPage post={selectedPost} type="reportDetail" onBack={() => goToPage('report')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} />;
             case 'claimDetail':

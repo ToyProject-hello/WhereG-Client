@@ -1,4 +1,4 @@
-export default function Notice({ onWrite, onOpen, notices = [], isAdmin = false, currentUser = null }) {
+export default function Notice({ onWrite, onOpen, notices = [], isAdmin = false }) {
   const noticeList = notices.length > 0 ? notices : Array.from({ length: 4 }, (_, index) => ({
     id: `notice-${index}`,
     title: '제목',

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LuSearch } from 'react-icons/lu';
 
 export default function LostReport({ onCardClick, reports = [] }) {
   const fallback = Array.from({ length: 8 }, (_, index) => ({
@@ -20,8 +21,12 @@ export default function LostReport({ onCardClick, reports = [] }) {
 
   return (
     <div className="pageContent">
-      <div className="pageHeader">
-        <h2 className="pageTitle">분실물 신고</h2>
+      <div className="searchSection listingSearch">
+        <div className="searchWrapper">
+          <LuSearch className="searchIcon" size={20} />
+          <input className="searchInput" placeholder="검색어를 입력해주세요." />
+        </div>
+        <button className="searchBtn">검색</button>
       </div>
 
       <div className="cardGrid grid4">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function NoticeWrite({ onSubmit, currentUser, onRequireLogin }) {
+export default function NoticeWrite({ onSubmit }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
