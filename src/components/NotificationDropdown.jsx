@@ -1,19 +1,18 @@
 export default function NotificationDropdown({ currentUser, notifications = null, onClear }) {
-  const demo = [
-    { title: '내 댓글에 답글이 달렸어요.', subtitle: '내용', timeLabel: '시간' },
-    { title: '제보한 글에 새 댓글이 있어요.', subtitle: '제가 본 것 같아요', timeLabel: '10분 전' },
-    { title: '제보한 글에 새 댓글이 있어요.', subtitle: '내용', timeLabel: '시간' }
-  ];
-
   const formatTime = (time) => {
-    if (!time) return '시간';
+    if (!time) return '';
     const date = new Date(time);
     if (Number.isNaN(date.getTime())) return time;
-    return date.toLocaleString('ko-KR');
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    if (diff < 2592000) return `${Math.floor(diff / 86400)}일 전`;
+    return date.toLocaleDateString('ko-KR');
   };
 
   const userItems = notifications ? notifications.filter((n) => n.recipient === currentUser) : [];
-  const items = notifications === null ? demo : userItems;
+  const items = userItems;
 
   return (
     <div className="notificationDropdown">
@@ -27,8 +26,8 @@ export default function NotificationDropdown({ currentUser, notifications = null
         </div>
       ) : (
         items.map((item, index) => (
-          <div key={item.id || index} className={`notificationItem ${index < 2 ? 'highlight' : ''}`}>
-            <div className="notificationDot" />
+          <div key={item.id || index} className={`notificationItem ${!item.read ? 'highlight' : ''}`}>
+            {!item.read && <div className="notificationDot" />}
             <div className="notificationContent">
               <div className="notificationTitle">{item.title}</div>
               <div className="notificationSubtitle">{item.subtitle || '내용'}</div>

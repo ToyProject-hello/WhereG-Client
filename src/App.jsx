@@ -14,32 +14,11 @@ import LostReportForm from './pages/LostReportForm';
 import LostClaimForm from './pages/LostClaimForm';
 import DetailPage from './pages/DetailPage';
 
-const initialNotifications = [
-  {
-    id: 'demo-note-1',
-    recipient: '추혜인',
-    title: '내 댓글에 답글이 달렸어요.',
-    subtitle: '내용',
-    time: '2026-06-04T01:00:00.000Z',
-    read: false,
-  },
-  {
-    id: 'demo-note-2',
-    recipient: '추혜인',
-    title: '제보한 글에 새 댓글이 있어요.',
-    subtitle: '제가 본 것 같아요',
-    time: '2026-06-04T00:50:00.000Z',
-    read: false,
-  },
-  {
-    id: 'demo-note-3',
-    recipient: '추혜인',
-    title: '제보한 글에 새 댓글이 있어요.',
-    subtitle: '내용',
-    time: '2026-06-04T00:00:00.000Z',
-    read: false,
-  },
-];
+const sanitizeNotifications = (items) => (
+  Array.isArray(items)
+    ? items.filter((item) => item && !String(item.id || '').startsWith('demo-note'))
+    : []
+);
 
 export default function App() {
   const [page, setPage] = useState('home');
@@ -82,9 +61,9 @@ export default function App() {
   const [notifications, setNotifications] = useState(() => {
     try {
       const raw = localStorage.getItem('wg_notifications');
-      return raw ? JSON.parse(raw) : initialNotifications;
+      return raw ? sanitizeNotifications(JSON.parse(raw)) : [];
     } catch {
-      return initialNotifications;
+      return [];
     }
   });
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -92,9 +71,11 @@ export default function App() {
   const [loginName, setLoginName] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
+  const [withdrawForm, setWithdrawForm] = useState({ password: '', phrase: '' });
   const [statusMessage, setStatusMessage] = useState('');
   const isAdmin = currentUser === '관리자' || currentUser === 'admin';
-  const unreadCount = currentUser ? notifications.filter((n) => n.recipient === currentUser).length : 0;
+  const unreadCount = currentUser ? notifications.filter((n) => n.recipient === currentUser && !n.read).length : 0;
 
   const showError = (message) => {
     setStatusMessage(message);
@@ -133,10 +114,12 @@ export default function App() {
   };
 
   const addNoticeComment = (noticeId, comment) => {
+    let updatedNotice = null;
     const next = notices.map((notice) => {
       if (notice.id === noticeId) {
         const comments = notice.comments ? [...notice.comments, { ...comment, id: `ncm-${Date.now()}` }] : [{ ...comment, id: `ncm-${Date.now()}` }];
-        return { ...notice, comments };
+        updatedNotice = { ...notice, comments };
+        return updatedNotice;
       }
       return notice;
     });
@@ -144,16 +127,21 @@ export default function App() {
     localStorage.setItem('wg_notices', JSON.stringify(next));
     const updated = next.find((notice) => notice.id === noticeId);
     if (updated) setSelectedPost(updated);
+    if (updatedNotice?.author && comment.author && updatedNotice.author !== comment.author) {
+      addNotification(updatedNotice.author, '공지에 새 댓글이 있어요.', comment.text || updatedNotice.title || '내용');
+    }
   };
 
   const addNotification = (recipient, title, subtitle) => {
     if (!recipient) return;
-    const note = { id: `nt-${Date.now()}`, recipient, title, subtitle, time: new Date().toISOString(), read: false };
-    const next = [note, ...notifications];
-    setNotifications(next);
-    try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
-      // Ignore storage failures so comments still update in memory.
-    }
+    const note = { id: `nt-${Date.now()}-${Math.random().toString(36).slice(2)}`, recipient, title, subtitle, time: new Date().toISOString(), read: false };
+    setNotifications((current) => {
+      const next = [note, ...sanitizeNotifications(current)];
+      try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
+        // Ignore storage failures so comments still update in memory.
+      }
+      return next;
+    });
   };
 
   const updateSelectedPostComments = (postId, buildComments) => {
@@ -164,12 +152,14 @@ export default function App() {
     return updated;
   };
 
-  const clearNotificationsForUser = (user) => {
+  const markNotificationsReadForUser = (user) => {
     if (!user) return;
-    const next = (notifications || []).filter((n) => n.recipient !== user);
+    const next = sanitizeNotifications(notifications).map((n) => (
+      n.recipient === user ? { ...n, read: true } : n
+    ));
     setNotifications(next);
     try { localStorage.setItem('wg_notifications', JSON.stringify(next)); } catch {
-      // Ignore storage failures so the notification menu can still clear.
+      // Ignore storage failures so the notification menu can still update.
     }
   };
 
@@ -216,6 +206,7 @@ export default function App() {
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
     let updated = null;
     let repliedComment = null;
+    let notifiedAuthor = null;
     const replyId = `rpl-${Date.now()}`;
     const next = target.map((p) => {
       if (p.id === postId) {
@@ -225,6 +216,7 @@ export default function App() {
             if (!parentReplyId) {
               const newReply = { ...reply, id: replyId, replies: [] };
               const replies = [...(c.replies || []), newReply];
+              notifiedAuthor = c.author;
               return { ...c, replies };
             }
             // add nested reply under a specific reply
@@ -232,6 +224,8 @@ export default function App() {
               if (r.id === parentReplyId) {
                 const newNested = { ...reply, id: replyId, replies: [] };
                 const rReplies = [...(r.replies || []), newNested];
+                repliedComment = r;
+                notifiedAuthor = r.author;
                 return { ...r, replies: rReplies };
               }
               return r;
@@ -252,12 +246,19 @@ export default function App() {
         if (c.id !== commentId) return c;
         repliedComment = c;
         if (!parentReplyId) {
+          notifiedAuthor = c.author;
           return { ...c, replies: [...(c.replies || []), { ...reply, id: replyId, replies: [] }] };
         }
         return {
           ...c,
           replies: (c.replies || []).map((r) => (
-            r.id === parentReplyId ? { ...r, replies: [...(r.replies || []), { ...reply, id: replyId, replies: [] }] } : r
+            r.id === parentReplyId
+              ? (() => {
+                repliedComment = r;
+                notifiedAuthor = r.author;
+                return { ...r, replies: [...(r.replies || []), { ...reply, id: replyId, replies: [] }] };
+              })()
+              : r
           )),
         };
       }));
@@ -266,8 +267,12 @@ export default function App() {
     }
     if (updated) {
       const commentObj = repliedComment || (updated.comments || []).find((c) => c.id === commentId);
-      if (commentObj && commentObj.author && reply.author && commentObj.author !== reply.author) {
-        addNotification(commentObj.author, '내 댓글에 답글이 달렸어요.', reply.text || updated.title || '내용');
+      const replyRecipient = notifiedAuthor || commentObj?.author;
+      if (replyRecipient && reply.author && replyRecipient !== reply.author) {
+        addNotification(replyRecipient, '내 댓글에 답글이 달렸어요.', reply.text || updated.title || '내용');
+      }
+      if (updated.author && reply.author && updated.author !== reply.author && updated.author !== replyRecipient) {
+        addNotification(updated.author, `${postType === 'claim' ? '제보한' : '신고한'} 글에 새 답글이 있어요.`, reply.text || updated.title || '내용');
       }
     }
   };
@@ -397,6 +402,7 @@ export default function App() {
 
   const handleProfileSelect = (action) => {
     if (action === 'password') {
+      setPasswordForm({ current: '', next: '', confirm: '' });
       setShowPasswordModal(true);
     }
     setShowProfileMenu(false);
@@ -407,15 +413,39 @@ export default function App() {
       showError('로그아웃되었습니다');
     }
     if (action === 'withdraw') {
+      setWithdrawForm({ password: '', phrase: '' });
       setShowWithdrawModal(true);
     }
   };
 
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordForm({ current: '', next: '', confirm: '' });
+  };
+
+  const handlePasswordChange = () => {
+    if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
+      showError('모든 항목을 입력해주세요');
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      showError('새 비밀번호가 일치하지 않습니다');
+      return;
+    }
+    closePasswordModal();
+    showError('비밀번호가 변경되었습니다');
+  };
+
   const handleWithdrawConfirm = () => {
+    if (!withdrawForm.password || withdrawForm.phrase.trim() !== '탈퇴') {
+      showError('비밀번호와 확인 문구를 입력해주세요');
+      return;
+    }
     setCurrentUser(null);
     localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
     setShowWithdrawModal(false);
     setShowPasswordModal(false);
+    setWithdrawForm({ password: '', phrase: '' });
     setShowNotifications(false);
     setPage('home');
     showError('회원탈퇴가 완료되었습니다');
@@ -497,13 +527,15 @@ export default function App() {
         })()}
       </main>
 
-      <FabMenu
-        isOpen={isFabOpen}
-        onToggle={() => setIsFabOpen((cur) => !cur)}
-        onAction={goToPage}
-      />
+      {page === 'home' && (
+        <FabMenu
+          isOpen={isFabOpen}
+          onToggle={() => setIsFabOpen((cur) => !cur)}
+          onAction={goToPage}
+        />
+      )}
 
-      {showNotifications && <NotificationDropdown currentUser={currentUser} notifications={notifications} onClear={() => clearNotificationsForUser(currentUser)} />}
+      {showNotifications && <NotificationDropdown currentUser={currentUser} notifications={notifications} onClear={() => markNotificationsReadForUser(currentUser)} />}
       {showProfileMenu && currentUser && <ProfileMenu onSelect={handleProfileSelect} onClose={() => setShowProfileMenu(false)} />}
       {showLoginModal && (
         <div className="modalOverlay" onClick={() => { setShowLoginModal(false); setLoginName(''); }}>
@@ -536,26 +568,44 @@ export default function App() {
       )}
 
       {showPasswordModal && (
-        <div className="modalOverlay" onClick={() => setShowPasswordModal(false)}>
+        <div className="modalOverlay" onClick={closePasswordModal}>
           <div className="modalCard" onClick={(e) => e.stopPropagation()}>
             <div className="modalHeader">
               <h3>비밀번호 변경</h3>
-              <button className="modalClose" onClick={() => setShowPasswordModal(false)}>
+              <button className="modalClose" onClick={closePasswordModal}>
                 ✕
               </button>
             </div>
             <p className="modalText">안전한 계정 사용을 위해 비밀번호를 주기적으로 변경해주세요.</p>
             <label className="formLabel">현재 비밀번호</label>
-            <input type="password" placeholder="비밀번호를 입력해 주세요." className="textInput" />
+            <input
+              type="password"
+              placeholder="비밀번호를 입력해 주세요."
+              className="textInput"
+              value={passwordForm.current}
+              onChange={(e) => setPasswordForm((form) => ({ ...form, current: e.target.value }))}
+            />
             <label className="formLabel">새 비밀번호</label>
-            <input type="password" placeholder="비밀번호를 입력해 주세요." className="textInput" />
+            <input
+              type="password"
+              placeholder="비밀번호를 입력해 주세요."
+              className="textInput"
+              value={passwordForm.next}
+              onChange={(e) => setPasswordForm((form) => ({ ...form, next: e.target.value }))}
+            />
             <label className="formLabel">새 비밀번호 확인</label>
-            <input type="password" placeholder="비밀번호를 입력해 주세요." className="textInput" />
+            <input
+              type="password"
+              placeholder="비밀번호를 입력해 주세요."
+              className="textInput"
+              value={passwordForm.confirm}
+              onChange={(e) => setPasswordForm((form) => ({ ...form, confirm: e.target.value }))}
+            />
             <div className="modalFooter">
-              <button className="secondaryButton" onClick={() => setShowPasswordModal(false)}>
+              <button className="secondaryButton" onClick={closePasswordModal}>
                 취소
               </button>
-              <button className="primaryButton" onClick={() => setShowPasswordModal(false)}>
+              <button className="primaryButton" onClick={handlePasswordChange}>
                 변경하기
               </button>
             </div>
@@ -574,16 +624,33 @@ export default function App() {
             </div>
             <p className="modalText">
               탈퇴하면 현재 계정으로 다시 이용할 수 없습니다.
-              계속 진행하시겠습니까?
+              비밀번호와 확인 문구를 입력해주세요.
             </p>
-            <div className="withdrawNotice">
-              작성한 게시글과 댓글은 서비스 화면에 남을 수 있으며, 계정 정보만 로그아웃 상태로 처리됩니다.
-            </div>
+            <label className="formLabel">현재 비밀번호</label>
+            <input
+              type="password"
+              placeholder="비밀번호를 입력해 주세요."
+              className="textInput"
+              value={withdrawForm.password}
+              onChange={(e) => setWithdrawForm((form) => ({ ...form, password: e.target.value }))}
+            />
+            <label className="formLabel">확인 문구</label>
+            <input
+              type="text"
+              placeholder="탈퇴를 입력해 주세요."
+              className="textInput"
+              value={withdrawForm.phrase}
+              onChange={(e) => setWithdrawForm((form) => ({ ...form, phrase: e.target.value }))}
+            />
             <div className="modalFooter">
               <button className="secondaryButton" onClick={() => setShowWithdrawModal(false)}>
                 취소
               </button>
-              <button className="dangerButton" onClick={handleWithdrawConfirm}>
+              <button
+                className="dangerButton"
+                onClick={handleWithdrawConfirm}
+                disabled={!withdrawForm.password || withdrawForm.phrase.trim() !== '탈퇴'}
+              >
                 탈퇴하기
               </button>
             </div>

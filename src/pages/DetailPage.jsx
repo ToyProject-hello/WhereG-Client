@@ -168,7 +168,7 @@ export default function DetailPage({ type, onBack, post, addComment, addReply, d
         <div className="sectionDivider" />
         <div className="detailDescription">
           <h3>상세 설명</h3>
-          <p className="descriptionNote">{post?.note || post?.feature || '안녕하세요. 최형진입니다....\n반가워요?'}</p>
+          <p className="descriptionNote">{post?.note || post?.feature || '상세 설명이 없습니다.'}</p>
         </div>
 
         <div className="sectionDivider" />

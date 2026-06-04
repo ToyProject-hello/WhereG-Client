@@ -9,7 +9,7 @@ html, body {
   width: 100%;
   min-height: 100%;
   background-color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #111111;
   overflow-x: hidden;
 }
@@ -17,6 +17,7 @@ html, body {
 body {
   margin: 0;
   line-height: 1.5;
+  font-weight: 400;
 }
 
 .container {
@@ -32,8 +33,8 @@ body {
 .header {
   width: 100%;
   height: 88px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 0 180px;
   border-bottom: 1px solid #f3f3f3;
@@ -41,15 +42,15 @@ body {
 }
 
 .headerLeft {
-  display: flex;
-  align-items: center;
-  gap: 405px;
+  display: contents;
 }
 
 .headerRight {
   display: flex;
   align-items: center;
   gap: 30px;
+  grid-column: 3;
+  justify-self: end;
 }
 
 .logo {
@@ -57,28 +58,32 @@ body {
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  grid-column: 1;
+  justify-self: start;
 }
 
 .logoIcon {
-  font-size: 26px;
-  color: #35A853;
+  font-size: 30px;
+  color: #2fac55;
 }
 
 .logoText {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   color: #111111;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 .nav {
   display: flex;
   gap: 86px;
+  grid-column: 2;
+  justify-self: center;
 }
 
 .navItem {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #111111;
   cursor: pointer;
   position: relative;
@@ -86,7 +91,7 @@ body {
 }
 
 .navItem.active {
-  color: #35A853;
+  color: #2fac55;
 }
 
 .navItem.active::after {
@@ -96,7 +101,7 @@ body {
   left: 0;
   width: 100%;
   height: 4px;
-  background-color: #35A853;
+  background-color: #2fac55;
   border-radius: 2px;
 }
 
@@ -118,7 +123,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #35a853;
+  background: #2fac55;
 }
 
 .profile {
@@ -141,7 +146,7 @@ body {
 
 .profileName {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #333333;
 }
 
@@ -156,7 +161,7 @@ body {
   width: 100%;
   max-width: 1560px;
   margin: 0 auto;
-  padding: 36px 40px 96px;
+  padding: 34px 40px 96px;
 }
 
 .searchSection {
@@ -174,13 +179,13 @@ body {
   display: flex;
   align-items: center;
   background-color: #ffffff;
-  border: 1px solid #f5f6f8;
+  border: 1px solid #f7f8fa;
   border-radius: 10px;
   padding: 0 18px;
   flex: 1;
   min-width: 0;
   min-height: 52px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.035);
 }
 
 .searchIcon {
@@ -196,19 +201,24 @@ body {
   font-size: 16px;
   outline: none;
   color: #111111;
+  font-weight: 500;
+}
+
+.searchInput::placeholder {
+  color: #a6abb2;
 }
 
 .searchBtn {
   width: 120px;
   height: 48px;
   border-radius: 10px;
-  background-color: #35a853;
+  background-color: #2fac55;
   color: #ffffff;
   border: none;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(53, 168, 83, 0.18);
+  box-shadow: 0 8px 20px rgba(47, 172, 85, 0.18);
 }
 
 /* --- 3. 카드 그리드: 4열 고정 --- */
@@ -234,9 +244,9 @@ body {
 .moreBtn {
   background: none;
   border: none;
-  color: #6b6375;
+  color: #7d8289;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -277,9 +287,9 @@ body {
 }
 
 .pageNumber.active {
-  background: #35a853;
+  background: #2fac55;
   color: #ffffff;
-  border-color: #35a853;
+  border-color: #2fac55;
   font-weight: 700;
 }
 
@@ -292,8 +302,8 @@ body {
   background: #ffffff;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #f5f6f8;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f4f5f7;
+  box-shadow: 0 14px 28px rgba(17, 24, 39, 0.055);
   width: 100%;
   min-height: 240px;
   display: flex;
@@ -320,15 +330,15 @@ body {
 }
 
 .cardTitle {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #111111;
   margin-bottom: 8px;
 }
 
 .cardMeta {
-  font-size: 14px;
-  color: #718096;
+  font-size: 15px;
+  color: #9aa0a8;
   margin: 4px 0;
 }
 
@@ -336,20 +346,20 @@ body {
   position: absolute;
   right: 24px;
   bottom: 24px;
-  padding: 9px 18px;
+  padding: 8px 18px;
   border-radius: 999px;
   font-size: 16px;
   font-weight: 700;
 }
 
 .badgeSearching {
-  background-color: #fff7d7;
-  color: #bf8b20;
+  background-color: #fff1bf;
+  color: #f0a800;
 }
 
 .badgeKeeping {
-  background-color: #eaf8ef;
-  color: #2d8c5a;
+  background-color: #d9f4df;
+  color: #159447;
 }
 
 .badgeCompleted {
@@ -377,8 +387,8 @@ body {
   flex-direction: column;
   background: #ffffff;
   border-radius: 18px;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e9eef3;
+  box-shadow: 0 12px 26px rgba(17, 24, 39, 0.12);
+  border: 1px solid #eceff3;
   overflow: hidden;
   width: 180px;
 }
@@ -397,20 +407,21 @@ body {
 .fabMenuText {
   font-size: 15px;
   font-weight: 600;
-  color: #303030;
+  color: #111111;
 }
 
 .fabMenuIcon {
   width: 22px;
   height: 22px;
+  stroke-width: 2.3;
 }
 
 .reportColor {
-  color: #ffb300;
+  color: #f4b000;
 }
 
 .tipColor {
-  color: #35a853;
+  color: #2fac55;
 }
 
 .fabDivider {
@@ -423,11 +434,11 @@ body {
   width: 66px;
   height: 66px;
   border-radius: 50%;
-  background-color: #35a853;
+  background-color: #2fac55;
   color: white;
   border: none;
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(53, 168, 83, 0.25);
+  box-shadow: 0 10px 24px rgba(47, 172, 85, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -516,7 +527,7 @@ body {
 
 .pageTitle {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
@@ -550,7 +561,7 @@ body {
 }
 
 .primaryButton {
-  background-color: #35a853;
+  background-color: #2fac55;
   color: #ffffff;
 }
 
@@ -584,7 +595,7 @@ body {
   background: none;
   padding: 0;
   margin: 0;
-  color: #35a853;
+  color: #2fac55;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -595,7 +606,7 @@ body {
 }
 
 .primaryText {
-  color: #35a853;
+  color: #2fac55;
 }
 
 .greyText {
@@ -645,8 +656,8 @@ body {
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e6ffed;
-  color: #166534;
+  background: #fff1bf;
+  color: #f0a800;
   font-size: 12px;
   font-weight: 700;
 }
@@ -695,7 +706,7 @@ body {
 
 .noticeCard {
   background-color: #ffffff;
-  border-radius: 24px;
+  border-radius: 14px;
   padding: 24px;
   border: 1px solid #f0f4f8;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.02);
@@ -807,7 +818,7 @@ body {
   border-radius: 12px;
   border: none;
   padding: 10px 18px;
-  background-color: #35a853;
+  background-color: #2fac55;
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
@@ -870,7 +881,7 @@ body {
 
 .detailTitle {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 16px 0 28px;
 }
 
@@ -1014,23 +1025,23 @@ body {
   margin-left: 8px;
   padding: 2px 8px;
   background: #f2f8f3;
-  color: #35a853;
+  color: #2fac55;
   border-radius: 999px;
   font-size: 12px;
 }
 
 .notificationDropdown {
   position: fixed;
-  top: 206px;
+  top: 64px;
   right: 180px;
   width: 420px;
   background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.12);
+  border-radius: 22px;
+  box-shadow: 0 18px 38px rgba(17, 24, 39, 0.13);
   border: 1px solid #f0f2f4;
   overflow: hidden;
   z-index: 1000;
-  padding: 22px 20px 24px;
+  padding: 20px 20px 24px;
 }
 
 .notificationHeader {
@@ -1042,28 +1053,30 @@ body {
 }
 
 .notificationHeader strong {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .notificationClear {
   background: none;
   border: none;
-  color: #35a853;
-  font-weight: 700;
+  color: #2fac55;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .notificationItem {
   display: flex;
   gap: 14px;
-  padding: 20px 20px 18px;
+  padding: 18px 20px 18px;
   border-bottom: none;
   border-radius: 8px;
   margin-bottom: 16px;
 }
 
 .notificationItem.highlight {
-  background: #eef9f0;
+  background: #eef9f1;
 }
 
 .notificationItem.empty {
@@ -1081,7 +1094,7 @@ body {
   height: 8px;
   margin-top: 9px;
   border-radius: 50%;
-  background: #35a853;
+  background: #2fac55;
   flex: 0 0 auto;
 }
 
@@ -1091,18 +1104,18 @@ body {
 
 .notificationTitle {
   color: #111111;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .notificationSubtitle {
-  color: #59606a;
-  margin-bottom: 12px;
+  color: #696f78;
+  margin-bottom: 10px;
 }
 
 .notificationTime {
-  color: #7b838d;
+  color: #818891;
   font-size: 15px;
 }
 
@@ -1125,7 +1138,7 @@ body {
 
 .accountHeader h3 {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .profileMenuItem {
@@ -1142,7 +1155,7 @@ body {
   border: none;
   border-radius: 12px;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: #111111;
   cursor: pointer;
 }
@@ -1206,7 +1219,7 @@ body {
 .modalHeader h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .modalClose {
@@ -1286,8 +1299,14 @@ body {
   background: #ff3b3f;
   color: #ffffff;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.dangerButton:disabled {
+  background: #e9ecef;
+  color: #9aa0a8;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

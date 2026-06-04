@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function NoticeWrite({ onSubmit }) {
+export default function NoticeWrite({ onSubmit, currentUser }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
@@ -25,7 +25,8 @@ export default function NoticeWrite({ onSubmit }) {
           const notice = {
             title: title.trim(),
             description: content.trim(),
-            date: new Date().toLocaleDateString('ko-KR')
+            date: new Date().toLocaleDateString('ko-KR'),
+            author: currentUser || '관리자',
           };
           onSubmit && onSubmit(notice);
         }}>
