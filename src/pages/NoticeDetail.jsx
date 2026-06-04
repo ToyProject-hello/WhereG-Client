@@ -118,32 +118,6 @@ export default function NoticeDetail({
           </div>
         </div>
       </div>
-
-      <div className="sectionDivider" />
-      <div className="commentSection">
-        <div className="commentHeader">댓글 ({comments.length})</div>
-        <div>
-          <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={handleSubmitKeyDown(handleCommentSubmit)} placeholder="댓글을 입력해 주세요." />
-          <div className="commentFormActions">
-            <button type="button" className="textAction greyText" onClick={() => setCommentText('')}>취소</button>
-            <button type="button" className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
-          </div>
-        </div>
-        {comments.map((c) => (
-          <div key={c.id} className="commentBlock">
-            <div className="commentItem" data-comment-id={c.id}>
-              <div className="commentAvatar">
-                <FaUserCircle size={56} />
-              </div>
-              <div className="commentContent">
-                <p className="commentName">{c.author}</p>
-                <p className="commentText">{c.text}</p>
-                <p className="commentTime">{getTimeAgo(c.time)}</p>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
-    </div>
   );
 }
