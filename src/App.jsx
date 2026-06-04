@@ -20,6 +20,28 @@ const sanitizeNotifications = (items) => (
     : []
 );
 
+const getNotificationSnapshot = (post) => {
+  if (!post) return null;
+  const snapshot = {
+    id: post.id,
+    title: post.title,
+    author: post.author,
+    date: post.date,
+    status: post.status,
+    place: post.place,
+    note: post.note,
+    feature: post.feature,
+    description: post.description,
+    comments: post.comments || [],
+  };
+
+  if (post.image && String(post.image).length < 50000) {
+    snapshot.image = post.image;
+  }
+
+  return snapshot;
+};
+
 export default function App() {
   const [page, setPage] = useState('home');
   const [reports, setReports] = useState(() => {
@@ -73,21 +95,26 @@ export default function App() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
   const [withdrawForm, setWithdrawForm] = useState({ password: '', phrase: '' });
-  const [statusMessage, setStatusMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [focusTarget, setFocusTarget] = useState(null);
   const isAdmin = currentUser === '관리자' || currentUser === 'admin';
   const unreadCount = currentUser ? notifications.filter((n) => n.recipient === currentUser && !n.read).length : 0;
 
-  const showError = (message) => {
-    setStatusMessage(message);
+  const showStatus = (message, type = 'error') => {
+    setStatusMessage({ message, type });
     window.clearTimeout(window._appStatusTimer);
-    window._appStatusTimer = window.setTimeout(() => setStatusMessage(''), 3000);
+    window._appStatusTimer = window.setTimeout(() => setStatusMessage(null), 3000);
   };
 
-  const goToPage = (nextPage, payload = null) => {
+  const showError = (message) => showStatus(message, 'error');
+  const showSuccess = (message) => showStatus(message, 'success');
+
+  const goToPage = (nextPage, payload = null, options = {}) => {
     if (!currentUser && ['noticeWrite', 'reportForm', 'claimForm'].includes(nextPage)) {
       showError('로그인 후 이용해주세요');
       return;
     }
+    setFocusTarget(options.focusTarget || null);
     setPage(nextPage);
     setShowNotifications(false);
     setShowProfileMenu(false);
@@ -134,6 +161,7 @@ export default function App() {
         page: 'noticeDetail',
         postId: updatedNotice.id,
         commentId: newComment.id,
+        postSnapshot: getNotificationSnapshot(updatedNotice),
       });
     }
   };
@@ -180,46 +208,139 @@ export default function App() {
     }
   };
 
-  const scrollToCommentSection = () => {
-    window.setTimeout(() => {
-      document.querySelector('.commentSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+  const getNotificationPage = (target) => {
+    if (!target) return null;
+    if (target.page) return target.page;
+    if (target.postType === 'claim') return 'claimDetail';
+    if (target.postType === 'report') return 'reportDetail';
+    return null;
+  };
+
+  const getNotificationPost = (target, targetPage) => {
+    const postId = target?.postId || target?.noticeId;
+    if (!postId) return null;
+    const source = targetPage === 'noticeDetail'
+      ? notices
+      : targetPage === 'claimDetail'
+        ? claims
+        : reports;
+    return (
+      source.find((item) => item.id === postId)
+      || (selectedPost?.id === postId ? selectedPost : null)
+      || target?.postSnapshot
+      || null
+    );
   };
 
   const handleNotificationOpen = (notification) => {
     markNotificationRead(notification?.id);
     const target = notification?.target;
-    if (!target?.page || !target?.postId) {
+    const targetPage = getNotificationPage(target);
+    const postId = target?.postId || target?.noticeId;
+    if (!targetPage || !postId) {
       setShowNotifications(false);
       showError('이동할 알림 위치를 찾을 수 없습니다');
       return;
     }
 
-    const targetPost = target.page === 'noticeDetail'
-      ? notices.find((notice) => notice.id === target.postId)
-      : target.postType === 'claim' || target.page === 'claimDetail'
-        ? claims.find((claim) => claim.id === target.postId)
-        : reports.find((report) => report.id === target.postId);
+    const targetPost = getNotificationPost(target, targetPage);
 
     if (!targetPost) {
       setShowNotifications(false);
-      showError('해당 글을 찾을 수 없습니다');
+      showError('해당 글이 삭제되었거나 찾을 수 없습니다');
       return;
     }
 
-    goToPage(target.page, targetPost);
-    scrollToCommentSection();
+    goToPage(targetPage, targetPost, {
+      focusTarget: {
+        postId,
+        commentId: target.commentId || null,
+        replyId: target.replyId || null,
+      },
+    });
   };
 
   const updatePost = (postType, postId, updates) => {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
-    const next = target.map((p) => (p.id === postId ? { ...p, ...updates } : p));
+    const existing = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
+    if (!existing) {
+      showError('해당 글을 찾을 수 없습니다');
+      return null;
+    }
+    if (!currentUser || (existing.author !== currentUser && !isAdmin)) {
+      showError('권한이 없습니다');
+      return null;
+    }
+    const updated = { ...existing, ...updates };
+    const hasStoredPost = target.some((p) => p.id === postId);
+    if (hasStoredPost) {
+      const next = target.map((p) => (p.id === postId ? updated : p));
+      setter(next);
+      localStorage.setItem(key, JSON.stringify(next));
+    }
+    setSelectedPost(updated);
+    return updated;
+  };
+
+  const deletePost = (postType, postId) => {
+    const target = postType === 'report' ? reports : claims;
+    const setter = postType === 'report' ? setReports : setClaims;
+    const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
+    const existing = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
+    if (!existing) {
+      showError('해당 글을 찾을 수 없습니다');
+      return false;
+    }
+    if (!currentUser || (existing.author !== currentUser && !isAdmin)) {
+      showError('권한이 없습니다');
+      return false;
+    }
+    const next = target.filter((p) => p.id !== postId);
     setter(next);
     localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
+    setSelectedPost(null);
+    showSuccess('게시물이 삭제되었습니다');
+    goToPage(postType === 'report' ? 'report' : 'claim');
+    return true;
+  };
+
+  const updateNotice = (noticeId, updates) => {
+    const existing = notices.find((notice) => notice.id === noticeId);
+    if (!existing) {
+      showError('해당 공지를 찾을 수 없습니다');
+      return null;
+    }
+    if (!currentUser || (existing.author !== currentUser && !isAdmin)) {
+      showError('권한이 없습니다');
+      return null;
+    }
+    const updated = { ...existing, ...updates, id: noticeId, author: existing.author || currentUser };
+    const next = notices.map((notice) => (notice.id === noticeId ? updated : notice));
+    setNotices(next);
+    localStorage.setItem('wg_notices', JSON.stringify(next));
     setSelectedPost(updated);
+    return updated;
+  };
+
+  const deleteNotice = (noticeId) => {
+    const existing = notices.find((notice) => notice.id === noticeId);
+    if (!existing) {
+      showError('해당 공지를 찾을 수 없습니다');
+      return false;
+    }
+    if (!currentUser || (existing.author !== currentUser && !isAdmin)) {
+      showError('권한이 없습니다');
+      return false;
+    }
+    const next = notices.filter((notice) => notice.id !== noticeId);
+    setNotices(next);
+    localStorage.setItem('wg_notices', JSON.stringify(next));
+    setSelectedPost(null);
+    showSuccess('공지가 삭제되었습니다');
+    goToPage('notice');
+    return true;
   };
 
   const addComment = (postType, postId, comment) => {
@@ -249,40 +370,63 @@ export default function App() {
         postType,
         postId,
         commentId: newComment.id,
+        postSnapshot: getNotificationSnapshot(updated),
       });
     }
   };
+
+  const findReplyInTree = (replies = [], replyId) => {
+    for (const reply of replies) {
+      if (reply.id === replyId) return reply;
+      const nested = findReplyInTree(reply.replies || [], replyId);
+      if (nested) return nested;
+    }
+    return null;
+  };
+
+  const addReplyToTree = (replies = [], parentReplyId, newReply) => (
+    replies.map((reply) => {
+      if (reply.id === parentReplyId) {
+        return { ...reply, replies: [...(reply.replies || []), newReply] };
+      }
+      return { ...reply, replies: addReplyToTree(reply.replies || [], parentReplyId, newReply) };
+    })
+  );
+
+  const removeReplyFromTree = (replies = [], replyId) => (
+    replies
+      .filter((reply) => reply.id !== replyId)
+      .map((reply) => ({ ...reply, replies: removeReplyFromTree(reply.replies || [], replyId) }))
+  );
+
+  const updateReplyInTree = (replies = [], replyId, updates) => (
+    replies.map((reply) => (
+      reply.id === replyId
+        ? { ...reply, ...updates }
+        : { ...reply, replies: updateReplyInTree(reply.replies || [], replyId, updates) }
+    ))
+  );
 
   const addReply = (postType, postId, commentId, reply, parentReplyId = null) => {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
     let updated = null;
-    let repliedComment = null;
     let notifiedAuthor = null;
     const replyId = `rpl-${Date.now()}`;
+    const newReply = { ...reply, id: replyId, replies: [] };
     const next = target.map((p) => {
       if (p.id === postId) {
         const comments = (p.comments || []).map((c) => {
           if (c.id === commentId) {
-            repliedComment = c;
             if (!parentReplyId) {
-              const newReply = { ...reply, id: replyId, replies: [] };
               const replies = [...(c.replies || []), newReply];
               notifiedAuthor = c.author;
               return { ...c, replies };
             }
-            // add nested reply under a specific reply
-            const replies = (c.replies || []).map((r) => {
-              if (r.id === parentReplyId) {
-                const newNested = { ...reply, id: replyId, replies: [] };
-                const rReplies = [...(r.replies || []), newNested];
-                repliedComment = r;
-                notifiedAuthor = r.author;
-                return { ...r, replies: rReplies };
-              }
-              return r;
-            });
+            const parentReply = findReplyInTree(c.replies || [], parentReplyId);
+            notifiedAuthor = parentReply?.author || c.author;
+            const replies = addReplyToTree(c.replies || [], parentReplyId, newReply);
             return { ...c, replies };
           }
           return c;
@@ -297,29 +441,19 @@ export default function App() {
     if (!updated) {
       updated = updateSelectedPostComments(postId, (comments) => comments.map((c) => {
         if (c.id !== commentId) return c;
-        repliedComment = c;
         if (!parentReplyId) {
           notifiedAuthor = c.author;
-          return { ...c, replies: [...(c.replies || []), { ...reply, id: replyId, replies: [] }] };
+          return { ...c, replies: [...(c.replies || []), newReply] };
         }
-        return {
-          ...c,
-          replies: (c.replies || []).map((r) => (
-            r.id === parentReplyId
-              ? (() => {
-                repliedComment = r;
-                notifiedAuthor = r.author;
-                return { ...r, replies: [...(r.replies || []), { ...reply, id: replyId, replies: [] }] };
-              })()
-              : r
-          )),
-        };
+        const parentReply = findReplyInTree(c.replies || [], parentReplyId);
+        notifiedAuthor = parentReply?.author || c.author;
+        return { ...c, replies: addReplyToTree(c.replies || [], parentReplyId, newReply) };
       }));
     } else {
       setSelectedPost(updated);
     }
     if (updated) {
-      const commentObj = repliedComment || (updated.comments || []).find((c) => c.id === commentId);
+      const commentObj = (updated.comments || []).find((c) => c.id === commentId);
       const replyRecipient = notifiedAuthor || commentObj?.author;
       const target = {
         page: postType === 'claim' ? 'claimDetail' : 'reportDetail',
@@ -327,6 +461,7 @@ export default function App() {
         postId,
         commentId,
         replyId,
+        postSnapshot: getNotificationSnapshot(updated),
       };
       if (replyRecipient && reply.author && replyRecipient !== reply.author) {
         addNotification(replyRecipient, '내 댓글에 답글이 달렸어요.', reply.text || updated.title || '내용', target);
@@ -341,7 +476,7 @@ export default function App() {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
-    const post = target.find((p) => p.id === postId);
+    const post = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
     if (!post) return;
     const comment = (post.comments || []).find((c) => c.id === commentId);
     if (!comment) return;
@@ -349,16 +484,24 @@ export default function App() {
       showError('권한이 없습니다');
       return;
     }
-    const next = target.map((p) => {
-      if (p.id === postId) {
-        const comments = (p.comments || []).filter((c) => c.id !== commentId);
-        return { ...p, comments };
-      }
-      return p;
+    const buildUpdatedPost = (sourcePost) => ({
+      ...sourcePost,
+      comments: (sourcePost.comments || []).filter((c) => c.id !== commentId),
     });
-    setter(next);
-    localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
+    let updated = null;
+    if (target.some((p) => p.id === postId)) {
+      const next = target.map((p) => {
+        if (p.id === postId) {
+          updated = buildUpdatedPost(p);
+          return updated;
+        }
+        return p;
+      });
+      setter(next);
+      localStorage.setItem(key, JSON.stringify(next));
+    } else {
+      updated = buildUpdatedPost(post);
+    }
     setSelectedPost(updated);
   };
 
@@ -366,32 +509,36 @@ export default function App() {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
-    const post = target.find((p) => p.id === postId);
+    const post = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
     if (!post) return;
     const comment = (post.comments || []).find((c) => c.id === commentId);
     if (!comment) return;
-    const reply = (comment.replies || []).find((r) => r.id === replyId);
+    const reply = findReplyInTree(comment.replies || [], replyId);
     if (!reply) return;
     if (!currentUser || reply.author !== currentUser) {
       showError('권한이 없습니다');
       return;
     }
-    const next = target.map((p) => {
-      if (p.id === postId) {
-        const comments = (p.comments || []).map((c) => {
-          if (c.id === commentId) {
-            const replies = (c.replies || []).filter((r) => r.id !== replyId);
-            return { ...c, replies };
-          }
-          return c;
-        });
-        return { ...p, comments };
-      }
-      return p;
+    const buildUpdatedPost = (sourcePost) => ({
+      ...sourcePost,
+      comments: (sourcePost.comments || []).map((c) => (
+        c.id === commentId ? { ...c, replies: removeReplyFromTree(c.replies || [], replyId) } : c
+      )),
     });
-    setter(next);
-    localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
+    let updated = null;
+    if (target.some((p) => p.id === postId)) {
+      const next = target.map((p) => {
+        if (p.id === postId) {
+          updated = buildUpdatedPost(p);
+          return updated;
+        }
+        return p;
+      });
+      setter(next);
+      localStorage.setItem(key, JSON.stringify(next));
+    } else {
+      updated = buildUpdatedPost(post);
+    }
     setSelectedPost(updated);
   };
 
@@ -399,7 +546,7 @@ export default function App() {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
-    const post = target.find((p) => p.id === postId);
+    const post = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
     if (!post) return;
     const comment = (post.comments || []).find((c) => c.id === commentId);
     if (!comment) return;
@@ -407,16 +554,24 @@ export default function App() {
       showError('권한이 없습니다');
       return;
     }
-    const next = target.map((p) => {
-      if (p.id === postId) {
-        const comments = (p.comments || []).map((c) => (c.id === commentId ? { ...c, text } : c));
-        return { ...p, comments };
-      }
-      return p;
+    const buildUpdatedPost = (sourcePost) => ({
+      ...sourcePost,
+      comments: (sourcePost.comments || []).map((c) => (c.id === commentId ? { ...c, text } : c)),
     });
-    setter(next);
-    localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
+    let updated = null;
+    if (target.some((p) => p.id === postId)) {
+      const next = target.map((p) => {
+        if (p.id === postId) {
+          updated = buildUpdatedPost(p);
+          return updated;
+        }
+        return p;
+      });
+      setter(next);
+      localStorage.setItem(key, JSON.stringify(next));
+    } else {
+      updated = buildUpdatedPost(post);
+    }
     setSelectedPost(updated);
   };
 
@@ -424,32 +579,36 @@ export default function App() {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
     const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
-    const post = target.find((p) => p.id === postId);
+    const post = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
     if (!post) return;
     const comment = (post.comments || []).find((c) => c.id === commentId);
     if (!comment) return;
-    const reply = (comment.replies || []).find((r) => r.id === replyId);
+    const reply = findReplyInTree(comment.replies || [], replyId);
     if (!reply) return;
     if (!currentUser || reply.author !== currentUser) {
       showError('권한이 없습니다');
       return;
     }
-    const next = target.map((p) => {
-      if (p.id === postId) {
-        const comments = (p.comments || []).map((c) => {
-          if (c.id === commentId) {
-            const replies = (c.replies || []).map((r) => (r.id === replyId ? { ...r, text } : r));
-            return { ...c, replies };
-          }
-          return c;
-        });
-        return { ...p, comments };
-      }
-      return p;
+    const buildUpdatedPost = (sourcePost) => ({
+      ...sourcePost,
+      comments: (sourcePost.comments || []).map((c) => (
+        c.id === commentId ? { ...c, replies: updateReplyInTree(c.replies || [], replyId, { text }) } : c
+      )),
     });
-    setter(next);
-    localStorage.setItem(key, JSON.stringify(next));
-    const updated = next.find((p) => p.id === postId);
+    let updated = null;
+    if (target.some((p) => p.id === postId)) {
+      const next = target.map((p) => {
+        if (p.id === postId) {
+          updated = buildUpdatedPost(p);
+          return updated;
+        }
+        return p;
+      });
+      setter(next);
+      localStorage.setItem(key, JSON.stringify(next));
+    } else {
+      updated = buildUpdatedPost(post);
+    }
     setSelectedPost(updated);
   };
 
@@ -470,7 +629,7 @@ export default function App() {
       setCurrentUser(null);
       localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
       setPage('home');
-      showError('로그아웃되었습니다');
+      showSuccess('로그아웃되었습니다');
     }
     if (action === 'withdraw') {
       setWithdrawForm({ password: '', phrase: '' });
@@ -493,7 +652,7 @@ export default function App() {
       return;
     }
     closePasswordModal();
-    showError('비밀번호가 변경되었습니다');
+    showSuccess('비밀번호가 변경되었습니다');
   };
 
   const handleWithdrawConfirm = () => {
@@ -508,7 +667,7 @@ export default function App() {
     setWithdrawForm({ password: '', phrase: '' });
     setShowNotifications(false);
     setPage('home');
-    showError('회원탈퇴가 완료되었습니다');
+    showSuccess('회원탈퇴가 완료되었습니다');
   };
 
   const handleLogin = (name) => {
@@ -546,7 +705,7 @@ export default function App() {
         }}
       />
 
-      {statusMessage && <div className="statusBanner">{statusMessage}</div>}
+      {statusMessage && <div className={`statusBanner ${statusMessage.type}`}>{statusMessage.message}</div>}
 
       <main className="main">
         {(() => {
@@ -570,17 +729,43 @@ export default function App() {
                 goToPage(pageName);
               }} onOpen={(item) => goToPage('noticeDetail', item)} notices={notices} isAdmin={isAdmin} currentUser={currentUser} />;
             case 'noticeWrite':
-              return <NoticeWrite onSubmit={(notice) => { addNotice(notice); goToPage('notice'); }} currentUser={currentUser} onRequireLogin={showError} />;
+              return <NoticeWrite
+                key={selectedPost?.id || 'notice-new'}
+                initialNotice={selectedPost}
+                onBack={() => selectedPost ? goToPage('noticeDetail', selectedPost) : goToPage('notice')}
+                onSubmit={(notice) => {
+                  if (selectedPost?.id) {
+                    const updated = updateNotice(selectedPost.id, notice);
+                    if (updated) goToPage('noticeDetail', updated);
+                    return;
+                  }
+                  addNotice(notice);
+                  goToPage('notice');
+                }}
+                currentUser={currentUser}
+                onRequireLogin={showError}
+              />;
             case 'noticeDetail':
-              return <NoticeDetail post={selectedPost} onBack={() => goToPage('notice')} addComment={addNoticeComment} currentUser={currentUser} onRequireLogin={showError} />;
+              return <NoticeDetail
+                key={selectedPost?.id || 'notice-empty'}
+                post={selectedPost}
+                onBack={() => goToPage('notice')}
+                addComment={addNoticeComment}
+                currentUser={currentUser}
+                isAdmin={isAdmin}
+                onEdit={(notice) => goToPage('noticeWrite', notice)}
+                onDelete={deleteNotice}
+                onRequireLogin={showError}
+                focusTarget={focusTarget}
+              />;
             case 'reportForm':
               return <LostReportForm onSubmit={(post) => { addReport(post); goToPage('report'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('report')} />;
             case 'claimForm':
               return <LostClaimForm onSubmit={(post) => { addClaim(post); goToPage('claim'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('claim')} />;
             case 'reportDetail':
-              return <DetailPage post={selectedPost} type="reportDetail" onBack={() => goToPage('report')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} />;
+              return <DetailPage key={selectedPost?.id || 'report-empty'} post={selectedPost} type="reportDetail" onBack={() => goToPage('report')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} deletePost={deletePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} focusTarget={focusTarget} />;
             case 'claimDetail':
-              return <DetailPage post={selectedPost} type="claimDetail" onBack={() => goToPage('claim')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} />;
+              return <DetailPage key={selectedPost?.id || 'claim-empty'} post={selectedPost} type="claimDetail" onBack={() => goToPage('claim')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} deletePost={deletePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} focusTarget={focusTarget} />;
             default:
               return <Home onCardClick={goToPage} />;
           }

@@ -1,9 +1,59 @@
-import { LuChevronLeft } from 'react-icons/lu';
+import { useEffect, useState } from 'react';
+import { LuChevronLeft, LuPencil, LuTrash2 } from 'react-icons/lu';
 import { FaUserCircle } from 'react-icons/fa';
-import { useState } from 'react';
 
-export default function NoticeDetail({ post, onBack, addComment, currentUser, onRequireLogin }) {
+const escapeSelectorValue = (value) => (
+  String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+);
+
+const getTimeAgo = (timeString) => {
+  const target = new Date(timeString);
+  if (Number.isNaN(target.getTime())) return '';
+  const diff = Math.floor((new Date().getTime() - target.getTime()) / 1000);
+  if (diff < 10) return '방금 전';
+  if (diff < 60) return `${diff}초 전`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}일 전`;
+  return target.toLocaleDateString('ko-KR');
+};
+
+export default function NoticeDetail({
+  post,
+  onBack,
+  addComment,
+  currentUser,
+  isAdmin = false,
+  onEdit,
+  onDelete,
+  onRequireLogin,
+  focusTarget,
+}) {
   const [commentText, setCommentText] = useState('');
+  const comments = post?.comments || [];
+  const isPlaceholderNotice = String(post?.id || '').startsWith('notice-') && !post?.author;
+  const canEditNotice = Boolean(currentUser && post?.id && !isPlaceholderNotice && (isAdmin || currentUser === post?.author));
+
+  useEffect(() => {
+    if (!focusTarget || !post?.id || String(focusTarget.postId) !== String(post.id)) return undefined;
+
+    let removeTimer = null;
+    const timer = window.setTimeout(() => {
+      const selector = focusTarget.commentId
+        ? `[data-comment-id="${escapeSelectorValue(focusTarget.commentId)}"]`
+        : '.commentSection';
+      const element = document.querySelector(selector) || document.querySelector('.commentSection');
+      if (!element) return;
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('commentFocusPulse');
+      removeTimer = window.setTimeout(() => element.classList.remove('commentFocusPulse'), 1600);
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timer);
+      if (removeTimer) window.clearTimeout(removeTimer);
+    };
+  }, [focusTarget, post?.id, comments.length]);
 
   const handleCommentSubmit = () => {
     const text = commentText.trim();
@@ -21,6 +71,13 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
     setCommentText('');
   };
 
+  const handleNoticeDelete = () => {
+    if (!post?.id || !onDelete) return;
+    const ok = window.confirm('공지를 삭제할까요?');
+    if (!ok) return;
+    onDelete(post.id);
+  };
+
   const handleSubmitKeyDown = (submit) => (event) => {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
     event.preventDefault();
@@ -29,12 +86,24 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
 
   return (
     <div className="pageContent">
-      <button className="backButton" onClick={onBack}>
+      <button type="button" className="backButton" onClick={onBack}>
         <LuChevronLeft size={18} /> 돌아가기
       </button>
       <div className="detailCard">
         <div className="detailBody">
-          <h2 className="detailTitle">{post?.title || '공지 제목 없음'}</h2>
+          <div className="detailTopLine">
+            <h2 className="detailTitle noticeDetailTitle">{post?.title || '공지 제목 없음'}</h2>
+            {canEditNotice && (
+              <div className="detailActions">
+                <button type="button" className="iconTextButton" onClick={() => onEdit && onEdit(post)}>
+                  <LuPencil size={16} /> 수정
+                </button>
+                <button type="button" className="iconTextButton dangerText" onClick={handleNoticeDelete}>
+                  <LuTrash2 size={16} /> 삭제
+                </button>
+              </div>
+            )}
+          </div>
           <div className="noticeDetailGrid">
             <div className="noticeDetailItem">
               <p className="detailLabel">날짜</p>
@@ -42,7 +111,7 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
             </div>
             <div className="noticeDetailItem">
               <p className="detailLabel">상세 내용</p>
-              <p className="detailValue" style={{ whiteSpace: 'pre-wrap', fontWeight: 400, color: '#4a5568' }}>
+              <p className="detailValue noticeDescription">
                 {post?.description || '설명이 없습니다.'}
               </p>
             </div>
@@ -52,24 +121,24 @@ export default function NoticeDetail({ post, onBack, addComment, currentUser, on
 
       <div className="sectionDivider" />
       <div className="commentSection">
-        <div className="commentHeader">댓글 ({(post?.comments || []).length})</div>
+        <div className="commentHeader">댓글 ({comments.length})</div>
         <div>
           <textarea className="textArea" rows={3} value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={handleSubmitKeyDown(handleCommentSubmit)} placeholder="댓글을 입력해 주세요." />
           <div className="commentFormActions">
-            <button className="textAction greyText" onClick={() => setCommentText('')}>취소</button>
-            <button className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
+            <button type="button" className="textAction greyText" onClick={() => setCommentText('')}>취소</button>
+            <button type="button" className={commentText.trim() ? 'textAction primaryText' : 'textAction disabledText'} onClick={handleCommentSubmit}>댓글 등록</button>
           </div>
         </div>
-        {(post?.comments || []).map((c) => (
-          <div key={c.id} style={{ marginTop: 12 }}>
-            <div className="commentItem">
+        {comments.map((c) => (
+          <div key={c.id} className="commentBlock">
+            <div className="commentItem" data-comment-id={c.id}>
               <div className="commentAvatar">
                 <FaUserCircle size={56} />
               </div>
-              <div style={{ flex: 1 }}>
+              <div className="commentContent">
                 <p className="commentName">{c.author}</p>
                 <p className="commentText">{c.text}</p>
-                <p className="commentTime">{new Date(c.time).toLocaleString('ko-KR')}</p>
+                <p className="commentTime">{getTimeAgo(c.time)}</p>
               </div>
             </div>
           </div>

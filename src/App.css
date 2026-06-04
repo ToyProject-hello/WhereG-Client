@@ -133,6 +133,10 @@ body {
   cursor: pointer;
 }
 
+.profileAvatarIcon {
+  color: #9aa0a8;
+}
+
 .profileIconWrapper {
   width: 34px;
   height: 34px;
@@ -649,9 +653,9 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 1300;
-  background-color: #ffe9e7;
-  color: #cc2f2f;
-  border: 1px solid #f1b0a5;
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
   border-radius: 14px;
   padding: 12px 18px;
   text-align: center;
@@ -659,21 +663,89 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
+.statusBanner.success {
+  background-color: #edf9f1;
+  color: #14743a;
+  border-color: #b8e6c6;
+}
+
+.statusBanner.error {
+  background-color: #fff1f0;
+  color: #cc2f2f;
+  border-color: #f1b0a5;
+}
+
 .statusEditRow {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f7faf8;
+  border: 1px solid #e5f1e8;
 }
 
-.statusEditRow select {
-  width: 260px;
-  border-radius: 14px;
-  border: 1px solid #d9dee6;
-  padding: 12px 14px;
+.statusEditLabel {
+  color: #354052;
   font-size: 15px;
+  font-weight: 800;
+}
+
+.statusSegment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
   background: #ffffff;
+  border: 1px solid #dfe7e2;
+}
+
+.statusSegmentButton {
+  min-width: 74px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6a7280;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.statusSegmentButton.active {
+  background: #2fac55;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(47, 172, 85, 0.18);
+}
+
+.statusSaveButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.statusSaveButton:disabled {
+  background: #e5e7eb;
+  color: #9aa0a8;
+  cursor: not-allowed;
+}
+
+.statusSavedText {
+  color: #2fac55;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .authorBadge {
@@ -692,19 +764,24 @@ body {
   align-items: flex-start;
   gap: 12px;
   margin-top: 10px;
-  padding-left: 10px;
+  padding-left: 0;
 }
 
 .replyAvatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: #e8ecef;
+  background-color: #f0f2f4;
   flex: 0 0 56px;
+  color: #a5abb3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .replyContent {
   flex: 1;
+  min-width: 0;
 }
 
 .replyHeader {
@@ -720,8 +797,27 @@ body {
   gap: 14px;
 }
 
+.replyActionsInline {
+  margin-top: 6px;
+}
+
 .replyFormActions {
   justify-content: flex-end;
+}
+
+.replyList {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  margin-left: 28px;
+}
+
+.replyList .replyList {
+  margin-left: 28px;
+}
+
+.replyForm {
+  margin-top: 10px;
 }
 
 .noticeList {
@@ -746,6 +842,16 @@ body {
 .noticeDetailItem {
   display: grid;
   gap: 10px;
+}
+
+.noticeDetailTitle {
+  margin-bottom: 0;
+}
+
+.noticeDescription {
+  white-space: pre-wrap;
+  font-weight: 400;
+  color: #4a5568;
 }
 
 .noticeHead {
@@ -914,6 +1020,83 @@ body {
   text-align: left;
 }
 
+.detailTopLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.detailTopLine .detailTitle {
+  margin: 0;
+}
+
+.detailActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iconTextButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 76px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #dfe4ea;
+  background: #ffffff;
+  color: #354052;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iconTextButton:hover {
+  background: #f7f8fa;
+}
+
+.dangerText {
+  color: #e03131;
+  border-color: #ffd7d7;
+}
+
+.primaryFilledButton {
+  background: #2fac55;
+  border-color: #2fac55;
+  color: #ffffff;
+}
+
+.primaryFilledButton:hover {
+  background: #279c4b;
+}
+
+.disabledFilledButton {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #9aa0a8;
+  cursor: not-allowed;
+}
+
+.postEditPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.postEditGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.postEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .detailTitle {
   font-size: 32px;
   font-weight: 700;
@@ -1033,12 +1216,25 @@ body {
   align-items: flex-start;
 }
 
+.commentBlock {
+  margin-top: 12px;
+}
+
 .commentAvatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: #dcdee1;
+  background-color: #f0f2f4;
   flex: 0 0 56px;
+  color: #a5abb3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commentContent {
+  flex: 1;
+  min-width: 0;
 }
 
 .commentName {
@@ -1054,6 +1250,22 @@ body {
 .commentTime {
   font-size: 13px;
   color: #a0aec0;
+}
+
+.commentFocusPulse {
+  animation: commentFocusPulse 1.6s ease;
+}
+
+@keyframes commentFocusPulse {
+  0% {
+    background: rgba(47, 172, 85, 0.18);
+    border-radius: 12px;
+    box-shadow: 0 0 0 0 rgba(47, 172, 85, 0.2);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 14px rgba(47, 172, 85, 0);
+  }
 }
 
 .commentBadge {

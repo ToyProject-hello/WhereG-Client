@@ -36,7 +36,7 @@ export default function Header({ activePage, onNavigate, onBellClick, onProfileC
           {unreadCount > 0 && <span className="bellDot" />}
         </button>
         <div className="profile" onClick={onProfileClick}>
-          <FaUserCircle size={24} />
+          <FaUserCircle className="profileAvatarIcon" size={24} />
           <span className="profileName">{currentUser || '로그인'}</span>
           <LuChevronDown className="arrowDown" />
         </div>
