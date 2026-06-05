@@ -17,9 +17,7 @@ const getTimeAgo = (timeString) => {
   return target.toLocaleDateString('ko-KR');
 };
 
-const escapeSelectorValue = (value) => (
-  String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-);
+const escapeSelectorValue = (value) => CSS.escape(String(value));
 
 const getPostEditForm = (post, isReport) => ({
   title: post?.title || '',
