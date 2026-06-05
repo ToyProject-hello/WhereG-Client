@@ -72,7 +72,7 @@ export default function App({ onAuthNavigate } = {}) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const raw = localStorage.getItem('wg_user');
+      const raw = localStorage.getItem('wg_user') || sessionStorage.getItem('wg_user');
       if (raw === 'WG_LOGGED_OUT') return null;
       return raw ? JSON.parse(raw) : null;
     } catch {
