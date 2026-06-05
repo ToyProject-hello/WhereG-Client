@@ -7,7 +7,7 @@ export default function LostClaimForm({ onSubmit, currentUser, onRequireLogin, o
   const [place, setPlace] = useState('');
   const [feature, setFeature] = useState('');
 
-  const allFilled = imageData && name.trim() && place.trim() && feature.trim();
+  const allFilled = imageData && name.trim() && place.trim();
 
   const handleFile = (file) => {
     if (!file) return setImageData(null);
