@@ -1,0 +1,24 @@
+- generic [ref=e79]:
+  - generic [ref=e80]:
+    - img [ref=e82] [cursor=pointer]
+    - heading "회원가입" [level=1] [ref=e84]
+    - paragraph [ref=e85]: 기본 정보를 입력해 주세요.
+  - generic [ref=e86]:
+    - generic [ref=e87]:
+      - generic [ref=e88]: 학과
+      - button "소프트웨어개발과" [ref=e110] [cursor=pointer]:
+        - generic [ref=e91]: 소프트웨어개발과
+        - img [ref=e111]
+    - generic [ref=e94]:
+      - generic [ref=e95]: 기수
+      - generic [ref=e96]:
+        - button "기수를 선택해주세요." [active] [ref=e97] [cursor=pointer]:
+          - generic [ref=e98]: 기수를 선택해주세요.
+          - img [ref=e113]
+        - generic [ref=e115]:
+          - generic [ref=e116] [cursor=pointer]: 8기
+          - generic [ref=e117] [cursor=pointer]: 9기
+          - generic [ref=e118] [cursor=pointer]: 10기
+  - generic [ref=e101]:
+    - button "이전" [ref=e102] [cursor=pointer]
+    - button "회원가입" [disabled] [ref=e103] [cursor=pointer]
