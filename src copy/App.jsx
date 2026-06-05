@@ -628,6 +628,7 @@ export default function App({ onAuthNavigate } = {}) {
     if (action === 'logout') {
       setCurrentUser(null);
       localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
+      sessionStorage.removeItem('wg_user');
       setPage('home');
       showSuccess('로그아웃되었습니다');
     }
