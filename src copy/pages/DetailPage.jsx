@@ -19,6 +19,16 @@ const getTimeAgo = (timeString) => {
 
 const escapeSelectorValue = (value) => CSS.escape(String(value));
 
+const statusTimerRef = useRef(null);
+
+useEffect(() => {
+  return () => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+  };
+}, []);
+
 const getPostEditForm = (post, isReport) => ({
   title: post?.title || '',
   place: post?.place || '',
@@ -118,8 +128,10 @@ export default function DetailPage({
     const updated = updatePost && updatePost(postType, post.id, { status: editStatus });
     if (updated) {
       setStatusSaved(true);
-      window.clearTimeout(window._detailStatusTimer);
-      window._detailStatusTimer = window.setTimeout(() => setStatusSaved(false), 1800);
+      if (statusTimerRef.current) {
+        window.clearTimeout(statusTimerRef.current);
+      }
+      statusTimerRef.current = window.setTimeout(() => setStatusSaved(false), 1800);
     }
   };
 
