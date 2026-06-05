@@ -45,11 +45,16 @@ function saveAccount(account) {
   writeAccounts(accounts);
 }
 
-function rememberUser(account) {
+function rememberUser(account, remember) {
   try {
-    localStorage.setItem(USER_KEY, JSON.stringify(account.name || account.email));
+    const value = JSON.stringify(account.name || account.email);
+    if (remember) {
+      localStorage.setItem(USER_KEY, value);
+    } else {
+      sessionStorage.setItem(USER_KEY, value);
+      localStorage.removeItem(USER_KEY);
+    }
   } catch {
-    // 저장소를 사용할 수 없어도 홈 화면 이동은 유지합니다.
   }
 }
 
