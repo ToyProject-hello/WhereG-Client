@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { LuChevronLeft, LuPencil, LuTrash2 } from 'react-icons/lu';
 import { FaUserCircle } from 'react-icons/fa';
 
-const escapeSelectorValue = (value) => (
-  String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-);
+const escapeSelectorValue = (value) => CSS.escape(String(value));
 
 const getTimeAgo = (timeString) => {
   const target = new Date(timeString);
