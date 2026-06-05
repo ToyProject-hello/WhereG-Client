@@ -69,15 +69,12 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
 
   function handleSubmit(event) {
     event.preventDefault();
-
     const account = readAccounts()[normalizeEmail(email)];
-
     if (!account || account.password !== password) {
       setError("아이디 또는 비밀번호가 일치하지 않습니다.");
       return;
     }
-
-    rememberUser(account);
+    rememberUser(account, remember);
     onLoginSuccess(account, remember);
   }
 
