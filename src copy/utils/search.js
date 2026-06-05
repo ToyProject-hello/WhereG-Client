@@ -10,6 +10,7 @@ const SEARCH_FIELDS = [
 ];
 
 export const filterBySearch = (items, keyword) => {
+  if (!Array.isArray(items)) return [];
   const query = keyword.trim().toLowerCase();
   if (!query) return items;
 
