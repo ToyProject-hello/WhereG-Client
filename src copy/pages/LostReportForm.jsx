@@ -7,7 +7,7 @@ export default function LostReportForm({ onSubmit, currentUser, onRequireLogin, 
   const [place, setPlace] = useState('');
   const [note, setNote] = useState('');
 
-  const allFilled = imageData && name.trim() && place.trim() && note.trim();
+  const allFilled = imageData && name.trim() && place.trim();
 
   const handleFile = (file) => {
     if (!file) return setImageData(null);
