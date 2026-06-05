@@ -663,6 +663,7 @@ export default function App({ onAuthNavigate } = {}) {
     }
     setCurrentUser(null);
     localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
+    sessionStorage.removeItem('wg_user');
     setShowWithdrawModal(false);
     setShowPasswordModal(false);
     setWithdrawForm({ password: '', phrase: '' });
