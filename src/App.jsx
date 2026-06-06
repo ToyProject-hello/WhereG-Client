@@ -39,17 +39,21 @@ function normalizeEmail(value) {
   return value.trim().toLowerCase();
 }
 async function hashPassword(password) {
+  if (!window.crypto?.subtle) {
+    throw new Error('Crypto API를 사용할 수 없는 환경입니다.');
+  }
+
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
 
   const hashBuffer = await crypto.subtle.digest(
-    "SHA-256",
+    'SHA-256',
     data
   );
 
   return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 function saveAccount(account) {
   const accounts = readAccounts();
