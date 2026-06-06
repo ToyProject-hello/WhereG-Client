@@ -24,7 +24,10 @@ export default function NoticeDetail({
   isAdmin = false,
   onEdit,
   onDelete,
+  onRequireLogin,
+  focusTarget,
 }) {
+  const [commentText, setCommentText] = useState('');
   const comments = post?.comments || [];
   const isPlaceholderNotice = String(post?.id || '').startsWith('notice-') && !post?.author;
   const canEditNotice = Boolean(currentUser && post?.id && !isPlaceholderNotice && (isAdmin || currentUser === post?.author));
