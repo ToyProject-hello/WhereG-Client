@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { LuCheck, LuChevronLeft, LuPencil, LuSave, LuTrash2, LuX } from 'react-icons/lu';
 import { FaUserCircle } from 'react-icons/fa';
 
@@ -18,16 +18,6 @@ const getTimeAgo = (timeString) => {
 };
 
 const escapeSelectorValue = (value) => CSS.escape(String(value));
-
-const statusTimerRef = useRef(null);
-
-useEffect(() => {
-  return () => {
-    if (statusTimerRef.current) {
-      clearTimeout(statusTimerRef.current);
-    }
-  };
-}, []);
 
 const getPostEditForm = (post, isReport) => ({
   title: post?.title || '',
@@ -53,6 +43,17 @@ export default function DetailPage({
   onRequireLogin,
   focusTarget,
 }) {
+
+  const statusTimerRef = useRef(null);
+
+useEffect(() => {
+  return () => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+  };
+}, []);
+
   const isReport = type === 'reportDetail';
   const statusLabel = isReport ? '찾는중' : '보관중';
   const statusValue = post?.status || statusLabel;
