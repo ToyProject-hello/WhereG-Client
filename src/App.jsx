@@ -1,5 +1,5 @@
 import "./App.css";
-import HomeApp from "../src copy/App.jsx";
+import HomeApp from "../src home/App.jsx";
 
 import { FaLock, FaRegUser } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
