@@ -46,11 +46,10 @@ async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
 
-  const hashBuffer = await crypto.subtle.digest(
+  const hashBuffer = await window.crypto.subtle.digest(
     'SHA-256',
     data
   );
-
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
@@ -86,8 +85,14 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
   async function handleSubmit(event) {
     event.preventDefault();
     const account = readAccounts()[normalizeEmail(email)];
-    const hashedPassword = await hashPassword(password);
-  if (!account || account.password !== hashedPassword) {
+    let hashedPassword;
+    try {
+      hashedPassword = await hashPassword(password);
+    } catch (err) {
+      setError(err.message || "로그인 중 오류가 발생했습니다.");
+      return;
+    }
+    if (!account || account.password !== hashedPassword) {
       setError("아이디 또는 비밀번호가 일치하지 않습니다.");
       return;
     }
@@ -386,7 +391,13 @@ function SignupFlow({ onBackToLogin, onComplete }) {
   }
 
   async function finishSignup() {
-  const hashedPassword = await hashPassword(password);
+    let hashedPassword;
+    try {
+      hashedPassword = await hashPassword(password);
+    } catch (err) {
+      alert(err.message || "회원가입 처리 중 오류가 발생했습니다.");
+      return;
+    }
 
   const account = {
     name: name.trim(),
