@@ -45,14 +45,13 @@ export default function DetailPage({
 }) {
 
   const statusTimerRef = useRef(null);
-
-useEffect(() => {
-  return () => {
-    if (statusTimerRef.current) {
-      clearTimeout(statusTimerRef.current);
-    }
-  };
-}, []);
+  useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    };
+  }, []);
 
   const isReport = type === 'reportDetail';
   const statusLabel = isReport ? '찾는중' : '보관중';
