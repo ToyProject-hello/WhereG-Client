@@ -86,8 +86,14 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
   async function handleSubmit(event) {
     event.preventDefault();
     const account = readAccounts()[normalizeEmail(email)];
-    const hashedPassword = await hashPassword(password);
-  if (!account || account.password !== hashedPassword) {
+    let hashedPassword;
+    try {
+      hashedPassword = await hashPassword(password);
+    } catch (err) {
+      setError(err.message || "로그인 중 오류가 발생했습니다.");
+      return;
+    }
+    if (!account || account.password !== hashedPassword) {
       setError("아이디 또는 비밀번호가 일치하지 않습니다.");
       return;
     }
