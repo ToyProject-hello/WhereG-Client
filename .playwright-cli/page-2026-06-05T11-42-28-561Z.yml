@@ -1,0 +1,24 @@
+- generic [ref=e27]:
+  - generic [ref=e28]:
+    - img [ref=e30] [cursor=pointer]
+    - heading "이메일 인증" [level=1] [ref=e32]
+    - paragraph [ref=e33]:
+      - text: 입력하신 이메일로 인증코드를 발송했습니다.
+      - text: 이메일을 확인하고 인증코드를 입력해 주세요.
+  - generic [ref=e34]:
+    - img [ref=e35]
+    - generic [ref=e37]: 인증코드가 testuser@example.com로 발송되었습니다.
+  - generic [ref=e38]:
+    - textbox [ref=e39]
+    - textbox [ref=e40]
+    - textbox [ref=e41]
+    - textbox [ref=e42]
+    - textbox [ref=e43]
+    - textbox [ref=e44]
+  - generic [ref=e45]:
+    - generic [ref=e46]: 인증코드는 5분간 유효합니다.
+    - generic [ref=e47]: 04:59
+  - generic [ref=e48]:
+    - generic [ref=e49]: 이메일을 받지 못하셨나요?
+    - button "재발송" [ref=e50] [cursor=pointer]
+  - button "인증하기" [disabled] [ref=e51] [cursor=pointer]

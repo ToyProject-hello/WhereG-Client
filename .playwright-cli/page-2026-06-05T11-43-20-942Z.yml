@@ -1,0 +1,21 @@
+- generic [ref=e52]:
+  - generic [ref=e53]:
+    - img [ref=e55] [cursor=pointer]
+    - heading "회원가입" [level=1] [ref=e57]
+    - paragraph [ref=e58]: 기본 정보를 입력해 주세요.
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - generic [ref=e61]: 비밀번호
+      - generic [ref=e62]:
+        - textbox "비밀번호를 입력해 주세요." [ref=e63]
+        - button [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+    - generic [ref=e68]:
+      - generic [ref=e69]: 비밀번호 확인
+      - generic [ref=e70]:
+        - textbox "비밀번호를 한 번 더 입력해 주세요." [ref=e71]
+        - button [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+  - generic [ref=e76]:
+    - button "이전" [ref=e77] [cursor=pointer]
+    - button "다음" [disabled] [ref=e78] [cursor=pointer]
