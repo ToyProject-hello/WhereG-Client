@@ -392,7 +392,13 @@ function SignupFlow({ onBackToLogin, onComplete }) {
   }
 
   async function finishSignup() {
-  const hashedPassword = await hashPassword(password);
+    let hashedPassword;
+    try {
+      hashedPassword = await hashPassword(password);
+    } catch (err) {
+      alert(err.message || "회원가입 처리 중 오류가 발생했습니다.");
+      return;
+    }
 
   const account = {
     name: name.trim(),
