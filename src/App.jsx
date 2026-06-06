@@ -1,5 +1,5 @@
 import "./App.css";
-import HomeApp from "../src copy/App.jsx";
+import HomeApp from "../src home/App.jsx";
 
 import { FaLock, FaRegUser } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
@@ -38,7 +38,23 @@ function writeAccounts(accounts) {
 function normalizeEmail(value) {
   return value.trim().toLowerCase();
 }
+async function hashPassword(password) {
+  if (!window.crypto?.subtle) {
+    throw new Error('Crypto API를 사용할 수 없는 환경입니다.');
+  }
 
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+
+  const hashBuffer = await crypto.subtle.digest(
+    'SHA-256',
+    data
+  );
+
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 function saveAccount(account) {
   const accounts = readAccounts();
   accounts[account.email] = account;
@@ -67,10 +83,11 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
 
   const canLogin = email.trim() !== "" && password !== "";
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     const account = readAccounts()[normalizeEmail(email)];
-    if (!account || account.password !== password) {
+    const hashedPassword = await hashPassword(password);
+  if (!account || account.password !== hashedPassword) {
       setError("아이디 또는 비밀번호가 일치하지 않습니다.");
       return;
     }
@@ -368,11 +385,13 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     setPage("profile");
   }
 
-  function finishSignup() {
+  async function finishSignup() {
+  const hashedPassword = await hashPassword(password);
+
   const account = {
     name: name.trim(),
     email: normalizeEmail(email),
-    password,
+    password: hashedPassword,
     department,
     generation,
   };

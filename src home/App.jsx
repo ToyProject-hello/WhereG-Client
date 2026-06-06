@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import './App.css';
 import Header from './components/Header';
 import FabMenu from './components/FabMenu';
@@ -97,13 +97,15 @@ export default function App({ onAuthNavigate } = {}) {
   const [withdrawForm, setWithdrawForm] = useState({ password: '', phrase: '' });
   const [statusMessage, setStatusMessage] = useState(null);
   const [focusTarget, setFocusTarget] = useState(null);
+  const statusTimerRef = useRef(null);
   const isAdmin = currentUser === '관리자' || currentUser === 'admin';
   const unreadCount = currentUser ? notifications.filter((n) => n.recipient === currentUser && !n.read).length : 0;
-
   const showStatus = (message, type = 'error') => {
     setStatusMessage({ message, type });
-    window.clearTimeout(window._appStatusTimer);
-    window._appStatusTimer = window.setTimeout(() => setStatusMessage(null), 3000);
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+    statusTimerRef.current = setTimeout(() => setStatusMessage(null), 3000);
   };
 
   const showError = (message) => showStatus(message, 'error');
