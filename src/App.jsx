@@ -1,5 +1,6 @@
 import "./App.css";
 import HomeApp from "../src home/App.jsx";
+import axios from "axios";
 
 import { FaLock, FaRegUser } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
@@ -351,7 +352,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     setCode6("");
   }
 
-  function signupNext() {
+  async function signupNext() {
     const normalizedEmail = normalizeEmail(email);
 
     if (!normalizedEmail.includes("@")) {
@@ -364,14 +365,48 @@ function SignupFlow({ onBackToLogin, onComplete }) {
       return;
     }
 
-    setEmailError("");
-    setEmail(normalizedEmail);
-    setPage("verify");
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/v1/auth/email`,
+        null,
+        {
+          params: {
+            email: normalizedEmail,
+          },
+        }
+      );
+
+      setEmailError("");
+      setEmail(normalizedEmail);
+      setPage("verify");
+    } catch (err) {
+      console.error(err);
+      setEmailError("인증 메일 전송에 실패했습니다.");
+    }
   }
 
-  function finishVerification() {
-    if (isCode) {
+  async function finishVerification() {
+    const code = code1 + code2 + code3 + code4 + code5 + code6;
+
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/v1/auth/email/verify`,
+        null,
+        {
+          params: {
+            email,
+            code,
+          },
+        }
+      );
+
       setPage("password");
+    } catch (err) {
+      console.error(err);
+      const message = err.response?.status === 400
+        ? "인증번호가 올바르지 않습니다."
+        : "인증 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      alert(message);
     }
   }
 
