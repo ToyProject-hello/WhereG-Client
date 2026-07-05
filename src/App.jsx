@@ -403,7 +403,10 @@ function SignupFlow({ onBackToLogin, onComplete }) {
       setPage("password");
     } catch (err) {
       console.error(err);
-      alert("인증번호가 올바르지 않습니다.");
+      const message = err.response?.status === 400
+        ? "인증번호가 올바르지 않습니다."
+        : "인증 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      alert(message);
     }
   }
 
