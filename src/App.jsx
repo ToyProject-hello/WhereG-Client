@@ -367,7 +367,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
 
     try {
       await axios.post(
-        "http://localhost:8080/api/v1/auth/email",
+        "https://whereg.site/api/v1/auth/email/verify",
         null,
         {
           params: {
@@ -390,7 +390,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
 
     try {
       await axios.post(
-        "http://localhost:8080/api/v1/auth/email/verify",
+        "https://whereg.site/api/v1/auth/email/verify",
         null,
         {
           params: {
