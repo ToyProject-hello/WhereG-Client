@@ -390,7 +390,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
 
     try {
       await axios.post(
-        "https://whereg.site/api/v1/auth/email/verify",
+        `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/v1/auth/email/verify`,
         null,
         {
           params: {
