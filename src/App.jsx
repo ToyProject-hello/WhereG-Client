@@ -54,8 +54,13 @@ function saveTokens({
 }) {
   const now = Date.now();
   try {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    if (accessToken) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    }
+
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
     if (accessTokenExpiresIn) {
       localStorage.setItem(
         ACCESS_EXPIRES_KEY,
@@ -153,6 +158,15 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         clearTokens();
+
+        try {
+          localStorage.removeItem(USER_KEY);
+          sessionStorage.removeItem(USER_KEY);
+        } catch {
+          // ignore
+        }
+
+        window.location.reload();
       }
     }
 
@@ -539,7 +553,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     }
 
     try {
-      await axios.post(`${API_BASE_URL}/api/v1/auth/email`, null, {
+      await api.post("/api/v1/auth/email", null, {
         params: {
           email: normalizedEmail,
         },
@@ -560,7 +574,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     const code = code1 + code2 + code3 + code4 + code5 + code6;
 
     try {
-      await axios.post(`${API_BASE_URL}/api/v1/auth/email/verify`, null, {
+      await api.post("/api/v1/auth/email/verify", null, {
         params: {
           email,
           code,
@@ -1076,7 +1090,7 @@ export default function App() {
 
   // 로그아웃: 서버 요청 성공/실패와 무관하게 로컬 토큰을 지우고 로그인 화면으로 보냅니다.
   function handleLogout() {
-    logoutUser(goToLogin);
+    return logoutUser(goToLogin);
   }
 
   // 회원 탈퇴: 성공하면 로컬 토큰을 지우고 로그인 화면으로 보냅니다.
@@ -1086,7 +1100,7 @@ export default function App() {
       goToLogin();
     } catch (err) {
       console.error("회원 탈퇴 실패:", err);
-      alert("회원 탈퇴 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      throw err;
     }
   }
 

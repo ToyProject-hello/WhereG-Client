@@ -42,7 +42,12 @@ const getNotificationSnapshot = (post) => {
   return snapshot;
 };
 
-export default function App({ onAuthNavigate } = {}) {
+export default function App({
+  onAuthNavigate,
+  onLogout,
+  onChangePassword,
+  onWithdraw,
+} = {}) {
   const [page, setPage] = useState('home');
   const [reports, setReports] = useState(() => {
     try {
@@ -97,6 +102,7 @@ export default function App({ onAuthNavigate } = {}) {
   const [withdrawForm, setWithdrawForm] = useState({ password: '', phrase: '' });
   const [statusMessage, setStatusMessage] = useState(null);
   const [focusTarget, setFocusTarget] = useState(null);
+  const [accountActionPending, setAccountActionPending] = useState(false);
   const statusTimerRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +124,18 @@ export default function App({ onAuthNavigate } = {}) {
 
   const showError = (message) => showStatus(message, 'error');
   const showSuccess = (message) => showStatus(message, 'success');
+  const getAccountErrorMessage = (error, fallback) => (
+    error?.response?.data?.message
+    || error?.response?.data?.error
+    || fallback
+  );
+
+  const completeLocalLogout = () => {
+    setCurrentUser(null);
+    localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
+    sessionStorage.removeItem('wg_user');
+    setPage('home');
+  };
 
   const goToPage = (nextPage, payload = null, options = {}) => {
     if (!currentUser && ['noticeWrite', 'reportForm', 'claimForm'].includes(nextPage)) {
@@ -629,18 +647,28 @@ export default function App({ onAuthNavigate } = {}) {
     return 'home';
   };
 
-  const handleProfileSelect = (action) => {
+  const handleProfileSelect = async (action) => {
     if (action === 'password') {
       setPasswordForm({ current: '', next: '', confirm: '' });
       setShowPasswordModal(true);
     }
     setShowProfileMenu(false);
     if (action === 'logout') {
-      setCurrentUser(null);
-      localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
-      sessionStorage.removeItem('wg_user');
-      setPage('home');
-      showSuccess('로그아웃되었습니다');
+      if (accountActionPending) return;
+      setAccountActionPending(true);
+      try {
+        if (onLogout) {
+          await onLogout();
+        } else {
+          completeLocalLogout();
+        }
+        showSuccess('로그아웃되었습니다');
+      } catch (error) {
+        console.error('로그아웃 실패:', error);
+        showError(getAccountErrorMessage(error, '로그아웃 처리 중 오류가 발생했습니다'));
+      } finally {
+        setAccountActionPending(false);
+      }
     }
     if (action === 'withdraw') {
       setWithdrawForm({ password: '', phrase: '' });
@@ -653,7 +681,8 @@ export default function App({ onAuthNavigate } = {}) {
     setPasswordForm({ current: '', next: '', confirm: '' });
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
+    if (accountActionPending) return;
     if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
       showError('모든 항목을 입력해주세요');
       return;
@@ -662,24 +691,45 @@ export default function App({ onAuthNavigate } = {}) {
       showError('새 비밀번호가 일치하지 않습니다');
       return;
     }
-    closePasswordModal();
-    showSuccess('비밀번호가 변경되었습니다');
+    setAccountActionPending(true);
+    try {
+      if (onChangePassword) {
+        await onChangePassword(passwordForm.current, passwordForm.next);
+      }
+      closePasswordModal();
+      showSuccess('비밀번호가 변경되었습니다');
+    } catch (error) {
+      console.error('비밀번호 변경 실패:', error);
+      showError(getAccountErrorMessage(error, '비밀번호 변경 중 오류가 발생했습니다'));
+    } finally {
+      setAccountActionPending(false);
+    }
   };
 
-  const handleWithdrawConfirm = () => {
+  const handleWithdrawConfirm = async () => {
+    if (accountActionPending) return;
     if (!withdrawForm.password || withdrawForm.phrase.trim() !== '탈퇴') {
       showError('비밀번호와 확인 문구를 입력해주세요');
       return;
     }
-    setCurrentUser(null);
-    localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
-    sessionStorage.removeItem('wg_user');
-    setShowWithdrawModal(false);
-    setShowPasswordModal(false);
-    setWithdrawForm({ password: '', phrase: '' });
-    setShowNotifications(false);
-    setPage('home');
-    showSuccess('회원탈퇴가 완료되었습니다');
+    setAccountActionPending(true);
+    try {
+      if (onWithdraw) {
+        await onWithdraw(withdrawForm.password);
+      } else {
+        completeLocalLogout();
+      }
+      setShowWithdrawModal(false);
+      setShowPasswordModal(false);
+      setWithdrawForm({ password: '', phrase: '' });
+      setShowNotifications(false);
+      showSuccess('회원탈퇴가 완료되었습니다');
+    } catch (error) {
+      console.error('회원탈퇴 실패:', error);
+      showError(getAccountErrorMessage(error, '회원탈퇴 처리 중 오류가 발생했습니다'));
+    } finally {
+      setAccountActionPending(false);
+    }
   };
 
   const handleLogin = (name) => {
@@ -868,8 +918,8 @@ export default function App({ onAuthNavigate } = {}) {
               <button className="secondaryButton" onClick={closePasswordModal}>
                 취소
               </button>
-              <button className="primaryButton" onClick={handlePasswordChange}>
-                변경하기
+              <button className="primaryButton" onClick={handlePasswordChange} disabled={accountActionPending}>
+                {accountActionPending ? '변경 중...' : '변경하기'}
               </button>
             </div>
           </div>
@@ -912,9 +962,9 @@ export default function App({ onAuthNavigate } = {}) {
               <button
                 className="dangerButton"
                 onClick={handleWithdrawConfirm}
-                disabled={!withdrawForm.password || withdrawForm.phrase.trim() !== '탈퇴'}
+                disabled={accountActionPending || !withdrawForm.password || withdrawForm.phrase.trim() !== '탈퇴'}
               >
-                탈퇴하기
+                {accountActionPending ? '처리 중...' : '탈퇴하기'}
               </button>
             </div>
           </div>
