@@ -16,54 +16,167 @@ import {
 
 import { GoCheckCircle } from "react-icons/go";
 
-const ACCOUNT_KEY = "wg_accounts";
 const USER_KEY = "wg_user";
 
-function readAccounts() {
-  try {
-    const raw = localStorage.getItem(ACCOUNT_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+const ACCESS_TOKEN_KEY = "wg_access_token";
+const REFRESH_TOKEN_KEY = "wg_refresh_token";
+const ACCESS_EXPIRES_KEY = "wg_access_expires_at";
+const REFRESH_EXPIRES_KEY = "wg_refresh_expires_at";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://whereg.site";
+
+// 학과 UI 라벨 -> 백엔드 enum 값 매핑
+// 주의: 백엔드는 SW / IOT / AI 세 값만 허용합니다. ("스마트IoT과"는 IOT로 매핑)
+const DEPARTMENT_OPTIONS = [
+  { label: "소프트웨어개발과", value: "SW" },
+  { label: "스마트IoT과", value: "IOT" },
+  { label: "AI과", value: "AI" },
+];
+
+// 학년(grade) - 백엔드가 실제로 갖고 있는 필드입니다. ("기수"는 백엔드에 없음)
+const GRADE_OPTIONS = [
+  { label: "1학년", value: 1 },
+  { label: "2학년", value: 2 },
+  { label: "3학년", value: 3 },
+  { label: "4학년", value: 4 },
+];
+
+function normalizeEmail(value) {
+  return value.trim().toLowerCase();
 }
 
-function writeAccounts(accounts) {
+// ---- 토큰 저장/조회 --------------------------------------------------------
+function saveTokens({
+  accessToken,
+  refreshToken,
+  accessTokenExpiresIn,
+  refreshTokenExpiresIn,
+}) {
+  const now = Date.now();
   try {
-    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accounts));
+    if (accessToken) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    }
+
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
+    if (accessTokenExpiresIn) {
+      localStorage.setItem(
+        ACCESS_EXPIRES_KEY,
+        String(now + accessTokenExpiresIn * 1000)
+      );
+    }
+    if (refreshTokenExpiresIn) {
+      localStorage.setItem(
+        REFRESH_EXPIRES_KEY,
+        String(now + refreshTokenExpiresIn * 1000)
+      );
+    }
   } catch {
     // 저장소를 사용할 수 없어도 현재 화면 흐름은 유지합니다.
   }
 }
 
-function normalizeEmail(value) {
-  return value.trim().toLowerCase();
+function getAccessToken() {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
-async function hashPassword(password) {
-  if (!window.crypto?.subtle) {
-    throw new Error('Crypto API를 사용할 수 없는 환경입니다.');
+
+function getRefreshToken() {
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function clearTokens() {
+  try {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(ACCESS_EXPIRES_KEY);
+    localStorage.removeItem(REFRESH_EXPIRES_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// ---- axios 인스턴스: Authorization 헤더 자동 부착 + 401시 토큰 재발급 -------
+const api = axios.create({ baseURL: API_BASE_URL });
+
+api.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+let reissuePromise = null;
+
+async function reissueTokens() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("refresh token이 없습니다.");
   }
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
+  // 동시에 여러 요청이 401을 받아도 재발급 요청은 한 번만 나가도록 합니다.
+  if (!reissuePromise) {
+    reissuePromise = axios
+      .put(`${API_BASE_URL}/api/v1/auth/reissue`, null, {
+        headers: { "X-Refresh-Token": refreshToken },
+      })
+      .then((res) => {
+        saveTokens(res.data);
+        return res.data;
+      })
+      .finally(() => {
+        reissuePromise = null;
+      });
+  }
 
-  const hashBuffer = await window.crypto.subtle.digest(
-    'SHA-256',
-    data
-  );
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-function saveAccount(account) {
-  const accounts = readAccounts();
-  accounts[account.email] = account;
-  writeAccounts(accounts);
+  return reissuePromise;
 }
 
-function rememberUser(account, remember) {
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    const isAuthEndpoint =
+      original?.url?.includes("/auth/signin") ||
+      original?.url?.includes("/auth/signup") ||
+      original?.url?.includes("/auth/reissue");
+
+    if (error.response?.status === 401 && !original?._retry && !isAuthEndpoint) {
+      original._retry = true;
+      try {
+        await reissueTokens();
+        return api(original);
+      } catch {
+        clearTokens();
+
+        try {
+          localStorage.removeItem(USER_KEY);
+          sessionStorage.removeItem(USER_KEY);
+        } catch {
+          // ignore
+        }
+
+        window.location.reload();
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+function rememberUser(identifier, remember) {
   try {
-    const value = JSON.stringify(account.name || account.email);
+    const value = JSON.stringify(identifier);
     if (remember) {
       localStorage.setItem(USER_KEY, value);
     } else {
@@ -74,31 +187,102 @@ function rememberUser(account, remember) {
   }
 }
 
+// ---- 로그인 상태에서 쓰는 계정 관련 API -----------------------------------
+// 세 API 모두 `api` 인스턴스를 쓰므로 Authorization: Bearer {accessToken}
+// 헤더가 자동으로 붙습니다. (백엔드팀 확인 완료: 2024 테스트 스펙 기준)
+
+// PATCH /api/v1/auth/password
+// 비로그인 상태의 "비밀번호 찾기"가 아니라, 로그인된 사용자의 "비밀번호 변경" API입니다.
+// currentPassword를 알아야 하므로 마이페이지/설정 화면 등 로그인 후 진입하는 곳에서만 써야 합니다.
+async function changePassword(currentPassword, newPassword) {
+  await api.patch("/api/v1/auth/password", {
+    currentPassword,
+    newPassword,
+  });
+}
+
+// DELETE /api/v1/auth/signout
+async function logoutUser(onFinally) {
+  try {
+    await api.delete("/api/v1/auth/signout");
+  } catch (err) {
+    console.error("로그아웃 요청 실패:", err);
+    // 서버 요청이 실패해도 로컬 토큰은 지워서 로그아웃 상태로 만듭니다.
+  } finally {
+    clearTokens();
+    try {
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(USER_KEY);
+    } catch {
+      // ignore
+    }
+    if (onFinally) onFinally();
+  }
+}
+
+// DELETE /api/v1/member/withdraw
+async function withdrawAccount() {
+  await api.delete("/api/v1/member/withdraw");
+  clearTokens();
+  try {
+    localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(USER_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const canLogin = email.trim() !== "" && password !== "";
+  const canLogin = email.trim() !== "" && password !== "" && !isSubmitting;
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const account = readAccounts()[normalizeEmail(email)];
-    let hashedPassword;
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError("");
+
+    const normalizedEmail = normalizeEmail(email);
+
     try {
-      hashedPassword = await hashPassword(password);
+      const response = await api.post("/api/v1/auth/signin", {
+        email: normalizedEmail,
+        password,
+      });
+
+      const {
+        accessToken,
+        refreshToken,
+        accessTokenExpiresIn,
+        refreshTokenExpiresIn,
+      } = response.data;
+
+      saveTokens({
+        accessToken,
+        refreshToken,
+        accessTokenExpiresIn,
+        refreshTokenExpiresIn,
+      });
+      rememberUser(normalizedEmail, remember);
+
+      onLoginSuccess({ email: normalizedEmail }, remember);
     } catch (err) {
-      setError(err.message || "로그인 중 오류가 발생했습니다.");
-      return;
+      console.error(err);
+      if (err.response?.status === 401) {
+        setError("아이디 또는 비밀번호가 일치하지 않습니다.");
+      } else {
+        setError("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    if (!account || account.password !== hashedPassword) {
-      setError("아이디 또는 비밀번호가 일치하지 않습니다.");
-      return;
-    }
-    rememberUser(account, remember);
-    onLoginSuccess(account, remember);
   }
 
   return (
@@ -199,6 +383,13 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
   );
 }
 
+// 확인됨: PATCH /api/v1/auth/password 는 currentPassword를 함께 보내야 하고
+// Authorization: Bearer {accessToken} 헤더가 필요한, "로그인 상태에서의 비밀번호 변경" API입니다.
+// 즉 비로그인 상태에서 이메일만으로 비밀번호를 재설정하는 API는 백엔드에 존재하지 않습니다.
+// 아래 "비밀번호 찾기" 화면은 그 기능을 흉내만 낸 임시 화면이며, 실제로 메일을 보내거나
+// 비밀번호를 바꾸지 않습니다. 비로그인 사용자를 위한 비밀번호 재설정이 꼭 필요하다면
+// 백엔드에 별도 엔드포인트 추가를 요청해야 합니다.
+// (로그인 상태의 비밀번호 변경은 이 파일의 changePassword() 함수를 쓰면 됩니다 — 마이페이지 등에서 사용)
 function ForgotPasswordPage({ onBackToLogin }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -274,11 +465,11 @@ function SignupFlow({ onBackToLogin, onComplete }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
-  const [department, setDepartment] = useState("");
-  const [generation, setGeneration] = useState("");
+  const [department, setDepartment] = useState(""); // 백엔드 enum 값: SW / IOT / AI
+  const [grade, setGrade] = useState(""); // 백엔드 필드: grade (숫자, 학년)
 
   const [showDepartment, setShowDepartment] = useState(false);
-  const [showGeneration, setShowGeneration] = useState(false);
+  const [showGrade, setShowGrade] = useState(false);
 
   const [code1, setCode1] = useState("");
   const [code2, setCode2] = useState("");
@@ -291,6 +482,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
 
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   const isSignup = name.trim() !== "" && email.trim() !== "";
 
@@ -360,28 +552,21 @@ function SignupFlow({ onBackToLogin, onComplete }) {
       return;
     }
 
-    if (readAccounts()[normalizedEmail]) {
-      setEmailError("이미 사용 중인 이메일입니다.");
-      return;
-    }
-
     try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/v1/auth/email`,
-        null,
-        {
-          params: {
-            email: normalizedEmail,
-          },
-        }
-      );
+      await api.post("/api/v1/auth/email", null, {
+        params: {
+          email: normalizedEmail,
+        },
+      });
 
       setEmailError("");
       setEmail(normalizedEmail);
       setPage("verify");
     } catch (err) {
       console.error(err);
-      setEmailError("인증 메일 전송에 실패했습니다.");
+      // 이미 가입된 이메일이면 백엔드가 이 단계에서 에러를 줄 수도 있습니다.
+      // 정확한 에러 코드가 확정되면 분기 처리해 주세요.
+      setEmailError("인증 메일 전송에 실패했습니다. 이미 가입된 이메일일 수 있습니다.");
     }
   }
 
@@ -389,16 +574,12 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     const code = code1 + code2 + code3 + code4 + code5 + code6;
 
     try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/v1/auth/email/verify`,
-        null,
-        {
-          params: {
-            email,
-            code,
-          },
-        }
-      );
+      await api.post("/api/v1/auth/email/verify", null, {
+        params: {
+          email,
+          code,
+        },
+      });
 
       setPage("password");
     } catch (err) {
@@ -426,25 +607,35 @@ function SignupFlow({ onBackToLogin, onComplete }) {
   }
 
   async function finishSignup() {
-    let hashedPassword;
+    if (isSigningUp) return;
+    setIsSigningUp(true);
+
     try {
-      hashedPassword = await hashPassword(password);
+      await api.post("/api/v1/auth/signup", {
+        name: name.trim(),
+        email: normalizeEmail(email),
+        password,
+        department, // 이미 SW/IOT/AI enum 값으로 저장되어 있음 (DEPARTMENT_OPTIONS 참고)
+        grade,
+      });
+
+      // 서버가 실제로 계정을 만든 뒤에만 완료 화면으로 이동합니다.
+      setPage("complete");
     } catch (err) {
-      alert(err.message || "회원가입 처리 중 오류가 발생했습니다.");
-      return;
+      console.error(err);
+      const code = err.response?.data?.code;
+      if (err.response?.status === 401 && code === "EMAIL_NOT_VERIFIED") {
+        alert("이메일 인증이 완료되지 않았습니다. 인증을 다시 진행해 주세요.");
+        setPage("verify");
+      } else if (err.response?.status === 409) {
+        alert("이미 가입된 이메일입니다.");
+      } else {
+        alert("회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    } finally {
+      setIsSigningUp(false);
     }
-
-  const account = {
-    name: name.trim(),
-    email: normalizeEmail(email),
-    password: hashedPassword,
-    department,
-    generation,
-  };
-
-  saveAccount(account);
-  onComplete();
-}
+  }
 
   return (
     <div className="app">
@@ -741,7 +932,10 @@ function SignupFlow({ onBackToLogin, onComplete }) {
                   className={`select-box ${department ? "selected" : ""}`}
                   onClick={() => setShowDepartment(!showDepartment)}
                 >
-                  <span>{department || "학과를 선택해주세요."}</span>
+                  <span>
+                    {DEPARTMENT_OPTIONS.find((opt) => opt.value === department)
+                      ?.label || "학과를 선택해주세요."}
+                  </span>
 
                   {showDepartment ? (
                     <FiChevronUp size={22} />
@@ -752,18 +946,18 @@ function SignupFlow({ onBackToLogin, onComplete }) {
 
                 {showDepartment && (
                   <div className="dropdown">
-                    {["소프트웨어개발과", "스마트IoT과", "AI과"].map((item) => (
+                    {DEPARTMENT_OPTIONS.map((opt) => (
                       <div
-                        key={item}
+                        key={opt.value}
                         className={`dropdown-item ${
-                          department === item ? "active" : ""
+                          department === opt.value ? "active" : ""
                         }`}
                         onClick={() => {
-                          setDepartment(item);
+                          setDepartment(opt.value);
                           setShowDepartment(false);
                         }}
                       >
-                        {item}
+                        {opt.label}
                       </div>
                     ))}
                   </div>
@@ -771,38 +965,47 @@ function SignupFlow({ onBackToLogin, onComplete }) {
               </div>
             </div>
 
+            {/*
+              원래 있던 "기수" 필드는 백엔드에 대응하는 컬럼이 없습니다.
+              백엔드는 대신 grade(학년, 숫자)를 가지고 있어서 학년 선택으로 대체했습니다.
+              "기수" 정보가 서비스에 꼭 필요하다면 기획팀과 먼저 상의해서
+              백엔드에 필드 추가를 요청해야 합니다.
+            */}
             <div className="input-group">
-              <label>기수</label>
+              <label>학년</label>
 
               <div className="select-wrapper">
                 <button
                   type="button"
-                  className={`select-box ${generation ? "selected" : ""}`}
-                  onClick={() => setShowGeneration(!showGeneration)}
+                  className={`select-box ${grade !== "" ? "selected" : ""}`}
+                  onClick={() => setShowGrade(!showGrade)}
                 >
-                  <span>{generation || "기수를 선택해주세요."}</span>
+                  <span>
+                    {GRADE_OPTIONS.find((opt) => opt.value === grade)?.label ||
+                      "학년을 선택해주세요."}
+                  </span>
 
-                  {showGeneration ? (
+                  {showGrade ? (
                     <FiChevronUp size={22} />
                   ) : (
                     <FiChevronDown size={22} />
                   )}
                 </button>
 
-                {showGeneration && (
+                {showGrade && (
                   <div className="dropdown">
-                    {["8기", "9기", "10기"].map((item) => (
+                    {GRADE_OPTIONS.map((opt) => (
                       <div
-                        key={item}
+                        key={opt.value}
                         className={`dropdown-item ${
-                          generation === item ? "active" : ""
+                          grade === opt.value ? "active" : ""
                         }`}
                         onClick={() => {
-                          setGeneration(item);
-                          setShowGeneration(false);
+                          setGrade(opt.value);
+                          setShowGrade(false);
                         }}
                       >
-                        {item}
+                        {opt.label}
                       </div>
                     ))}
                   </div>
@@ -818,14 +1021,14 @@ function SignupFlow({ onBackToLogin, onComplete }) {
 
             <button
               className={
-                department !== "" && generation !== ""
+                department !== "" && grade !== "" && !isSigningUp
                   ? "next-btn active"
                   : "next-btn"
               }
-              disabled={department === "" || generation === ""}
-              onClick={() => setPage("complete")}
+              disabled={department === "" || grade === "" || isSigningUp}
+              onClick={finishSignup}
             >
-              회원가입
+              {isSigningUp ? "처리 중..." : "회원가입"}
             </button>
           </div>
         </div>
@@ -836,7 +1039,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
           <div className="complete-modal">
             <button
               className="close-icon"
-              onClick={finishSignup}
+              onClick={onComplete}
               aria-label="닫기"
             >
               x
@@ -861,7 +1064,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
               로그인 후 서비스를 이용해 주세요.
             </p>
 
-            <button className="next-btn active" onClick={finishSignup}>
+            <button className="next-btn active" onClick={onComplete}>
               로그인하러 가기
             </button>
           </div>
@@ -878,6 +1081,27 @@ export default function App() {
   function returnHome() {
     setAuthView("home");
     setHomeKey((key) => key + 1);
+  }
+
+  function goToLogin() {
+    setAuthView("login");
+    setHomeKey((key) => key + 1);
+  }
+
+  // 로그아웃: 서버 요청 성공/실패와 무관하게 로컬 토큰을 지우고 로그인 화면으로 보냅니다.
+  function handleLogout() {
+    return logoutUser(goToLogin);
+  }
+
+  // 회원 탈퇴: 성공하면 로컬 토큰을 지우고 로그인 화면으로 보냅니다.
+  async function handleWithdraw() {
+    try {
+      await withdrawAccount();
+      goToLogin();
+    } catch (err) {
+      console.error("회원 탈퇴 실패:", err);
+      throw err;
+    }
   }
 
   if (authView === "login") {
@@ -904,5 +1128,13 @@ export default function App() {
     );
   }
 
-  return <HomeApp key={homeKey} onAuthNavigate={setAuthView} />;
+  return (
+    <HomeApp
+      key={homeKey}
+      onAuthNavigate={setAuthView}
+      onLogout={handleLogout}
+      onChangePassword={changePassword}
+      onWithdraw={handleWithdraw}
+    />
+  );
 }
