@@ -459,7 +459,8 @@ function SignupFlow({ onBackToLogin, onComplete }) {
   const [time, setTime] = useState(300);
 
   const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [passwordFormatError, setPasswordFormatError] = useState("");
+  const [passwordMatchError, setPasswordMatchError] = useState("");
   const [isSigningUp, setIsSigningUp] = useState(false);
 
   const isSignup = name.trim() !== "" && email.trim() !== "";
@@ -503,7 +504,8 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     if (page === "password") {
       setPassword("");
       setPasswordConfirm("");
-      setPasswordError("");
+      setPasswordFormatError("");
+      setPasswordMatchError("");
       setShowPassword(false);
       setShowPasswordConfirm(false);
     }
@@ -571,19 +573,16 @@ function SignupFlow({ onBackToLogin, onComplete }) {
   const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   function passwordNext() {
-    if (!PASSWORD_RULE.test(password)) {
-      setPasswordError(
-        "비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야 합니다."
-      );
-      return;
-    }
+    const formatOk = PASSWORD_RULE.test(password);
+    const matchOk = password !== "" && password === passwordConfirm;
 
-    if (password !== passwordConfirm) {
-      setPasswordError("비밀번호가 일치하지 않습니다.");
-      return;
-    }
+    setPasswordFormatError(
+      formatOk ? "" : "비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야 합니다."
+    );
+    setPasswordMatchError(matchOk ? "" : "비밀번호가 일치하지 않습니다.");
 
-    setPasswordError("");
+    if (!formatOk || !matchOk) return;
+
     setPage("profile");
   }
 
@@ -809,9 +808,6 @@ function SignupFlow({ onBackToLogin, onComplete }) {
           <div className="form-area">
             <div className="input-group">
               <label>비밀번호</label>
-              <p className="input-hint">
-                영문, 숫자, 특수문자를 포함하여 8자 이상 입력해 주세요.
-              </p>
 
               <div className="input-box password-input">
                 <input
@@ -820,7 +816,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
                   value={password}
                   onChange={(event) => {
                     setPassword(event.target.value);
-                    setPasswordError("");
+                    setPasswordFormatError("");
                   }}
                 />
 
@@ -833,6 +829,10 @@ function SignupFlow({ onBackToLogin, onComplete }) {
                   {showPassword ? <FiEye size={22} /> : <FiEyeOff size={22} />}
                 </button>
               </div>
+
+              {passwordFormatError !== "" && (
+                <p className="error-text">{passwordFormatError}</p>
+              )}
             </div>
 
             <div className="input-group">
@@ -845,7 +845,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
                   value={passwordConfirm}
                   onChange={(event) => {
                     setPasswordConfirm(event.target.value);
-                    setPasswordError("");
+                    setPasswordMatchError("");
                   }}
                 />
 
@@ -867,8 +867,8 @@ function SignupFlow({ onBackToLogin, onComplete }) {
                 </button>
               </div>
 
-              {passwordError !== "" && (
-                <p className="error-text">{passwordError}</p>
+              {passwordMatchError !== "" && (
+                <p className="error-text">{passwordMatchError}</p>
               )}
             </div>
           </div>
