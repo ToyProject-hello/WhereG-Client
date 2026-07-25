@@ -532,7 +532,9 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     }
 
     try {
-      await publicApi.post("/api/v1/auth/email", { email: normalizedEmail });
+      await publicApi.post("/api/v1/auth/email", null, {
+        params: { email: normalizedEmail },
+      });
 
       setEmailError("");
       setEmail(normalizedEmail);
