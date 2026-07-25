@@ -2,7 +2,7 @@ name: CD
 
 on:
   push:
-    branches: [ master, feature/frontend-setup ]
+    branches: [ main, feature/frontend-setup ]
 
 jobs:
   deploy:
