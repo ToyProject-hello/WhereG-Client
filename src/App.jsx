@@ -108,6 +108,14 @@ function clearTokens() {
 // ---- axios 인스턴스: Authorization 헤더 자동 부착 + 401시 토큰 재발급 -------
 const api = axios.create({ baseURL: API_BASE_URL });
 
+// ---- 로그인 전에 쓰는 "공개" API 전용 인스턴스 ------------------------------
+// 회원가입, 이메일 인증번호 발급/확인 같은 API는 토큰이 필요 없는데,
+// 위 `api` 인스턴스를 그대로 쓰면 브라우저에 남아있는 만료/무효 토큰이
+// 실수로 붙어서 401 -> 재발급 실패 -> 강제 새로고침으로 이어질 수 있습니다.
+// (회원가입 인증메일이 "조용히" 안 가는 것처럼 보였던 원인)
+// 그래서 이런 공개 API는 인터셉터가 없는 별도 인스턴스로 호출합니다.
+const publicApi = axios.create({ baseURL: API_BASE_URL });
+
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
@@ -383,55 +391,26 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
   );
 }
 
-// 확인됨: PATCH /api/v1/auth/password 는 currentPassword를 함께 보내야 하고
-// Authorization: Bearer {accessToken} 헤더가 필요한, "로그인 상태에서의 비밀번호 변경" API입니다.
-// 즉 비로그인 상태에서 이메일만으로 비밀번호를 재설정하는 API는 백엔드에 존재하지 않습니다.
-// 아래 "비밀번호 찾기" 화면은 그 기능을 흉내만 낸 임시 화면이며, 실제로 메일을 보내거나
-// 비밀번호를 바꾸지 않습니다. 비로그인 사용자를 위한 비밀번호 재설정이 꼭 필요하다면
-// 백엔드에 별도 엔드포인트 추가를 요청해야 합니다.
-// (로그인 상태의 비밀번호 변경은 이 파일의 changePassword() 함수를 쓰면 됩니다 — 마이페이지 등에서 사용)
+// 참고: 현재 백엔드에는 "로그인 없이 이메일 인증만으로 비밀번호를 재설정"하는
+// API가 없습니다. (/api/v1/auth/email 은 되지만 email/verify는 빈 바디만 주고,
+// 비밀번호 변경 API는 로그인 + 현재 비밀번호가 반드시 필요합니다.)
+// 그래서 예전 코드처럼 "메일을 보냈습니다"라고 안내하면 실제로는 아무 것도
+// 일어나지 않는 거짓 성공 메시지가 됩니다. 백엔드에 재설정 기능이 추가되기
+// 전까지는 솔직하게 안내만 하도록 임시로 막아둡니다.
 function ForgotPasswordPage({ onBackToLogin }) {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const canSend = email.trim() !== "";
-
-  function handleSubmit(event) {
-    event.preventDefault();
-    if (!canSend) return;
-    setMessage("비밀번호 재설정 메일을 보냈습니다.");
-  }
-
   return (
     <div className="auth-page">
-      <form className="auth-card forgot-card" onSubmit={handleSubmit}>
+      <div className="auth-card forgot-card">
         <h1 className="auth-title">비밀번호 찾기</h1>
 
         <div className="auth-form">
-          <div className="auth-field">
-            <label>이메일</label>
-            <div className="auth-input-box">
-              <HiOutlineMail className="auth-input-icon" size={23} />
-              <input
-                type="email"
-                placeholder="이메일 주소를 입력해 주세요."
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  setMessage("");
-                }}
-              />
-            </div>
-          </div>
-
-          {message && <p className="auth-success-text">{message}</p>}
-
-          <button
-            type="submit"
-            className={`auth-primary-btn ${canSend ? "active" : ""}`}
-            disabled={!canSend}
-          >
-            이메일 보내기
-          </button>
+          <p className="auth-notice">
+            죄송합니다. 현재는 로그인 없이 이메일 인증만으로 비밀번호를
+            재설정하는 기능을 지원하지 않습니다.
+            <br />
+            <br />
+            비밀번호가 기억나지 않으신다면 관리자에게 문의해 주세요.
+          </p>
         </div>
 
         <div className="or-divider">
@@ -447,7 +426,7 @@ function ForgotPasswordPage({ onBackToLogin }) {
         >
           로그인 페이지로 돌아가기
         </button>
-      </form>
+      </div>
     </div>
   );
 }
@@ -553,20 +532,14 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     }
 
     try {
-      await api.post("/api/v1/auth/email", null, {
-        params: {
-          email: normalizedEmail,
-        },
-      });
+      await publicApi.post("/api/v1/auth/email", { email: normalizedEmail });
 
       setEmailError("");
       setEmail(normalizedEmail);
       setPage("verify");
     } catch (err) {
-      console.error(err);
-      // 이미 가입된 이메일이면 백엔드가 이 단계에서 에러를 줄 수도 있습니다.
-      // 정확한 에러 코드가 확정되면 분기 처리해 주세요.
-      setEmailError("인증 메일 전송에 실패했습니다. 이미 가입된 이메일일 수 있습니다.");
+      console.error("이메일 발송 실패:", err);
+      setEmailError("인증 메일 전송에 실패했습니다.");
     }
   }
 
@@ -574,7 +547,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     const code = code1 + code2 + code3 + code4 + code5 + code6;
 
     try {
-      await api.post("/api/v1/auth/email/verify", null, {
+      await publicApi.post("/api/v1/auth/email/verify", null, {
         params: {
           email,
           code,
@@ -611,7 +584,7 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     setIsSigningUp(true);
 
     try {
-      await api.post("/api/v1/auth/signup", {
+      await publicApi.post("/api/v1/auth/signup", {
         name: name.trim(),
         email: normalizeEmail(email),
         password,
@@ -1093,14 +1066,17 @@ export default function App() {
     return logoutUser(goToLogin);
   }
 
-  // 회원 탈퇴: 성공하면 로컬 토큰을 지우고 로그인 화면으로 보냅니다.
+  // App 컴포넌트 내 handleWithdraw 수정
   async function handleWithdraw() {
+    if (!window.confirm("정말로 탈퇴하시겠습니까?")) return;
+
     try {
-      await withdrawAccount();
+      await withdrawAccount(); // DELETE /api/v1/member/withdraw 호출
+      alert("탈퇴 처리가 완료되었습니다.");
       goToLogin();
     } catch (err) {
       console.error("회원 탈퇴 실패:", err);
-      throw err;
+      alert("회원 탈퇴 처리에 실패했습니다. (응답 상태: " + (err.response?.status || "네트워크 오류") + ")");
     }
   }
 
