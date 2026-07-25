@@ -17,6 +17,11 @@ import {
 import { GoCheckCircle } from "react-icons/go";
 
 const USER_KEY = "wg_user";
+// USER_KEY("wg_user")는 "로그인 상태 유지"용으로 이메일을 저장하는 키인데,
+// HomeApp(src home)이 같은 키 이름을 "화면에 보여줄 사용자 이름"으로 착각해서
+// 그대로 읽어 쓰고 있었습니다. 그래서 헤더/작성자 표시에 이메일이 나왔던 것.
+// 이름은 이 별도 키에 저장해서 완전히 분리합니다.
+const USER_NAME_KEY = "wg_user_name";
 
 const ACCESS_TOKEN_KEY = "wg_access_token";
 const REFRESH_TOKEN_KEY = "wg_refresh_token";
@@ -169,6 +174,8 @@ api.interceptors.response.use(
         try {
           localStorage.removeItem(USER_KEY);
           sessionStorage.removeItem(USER_KEY);
+          localStorage.removeItem(USER_NAME_KEY);
+          sessionStorage.removeItem(USER_NAME_KEY);
         } catch {
           // ignore
         }
@@ -189,6 +196,22 @@ function rememberUser(identifier, remember) {
     } else {
       sessionStorage.setItem(USER_KEY, value);
       localStorage.removeItem(USER_KEY);
+    }
+  } catch {
+  }
+}
+
+// 화면 표시용 이름 저장 (USER_KEY와는 별개 - 저건 이메일 저장용)
+function saveUserName(name, remember) {
+  if (!name) return;
+  try {
+    const value = JSON.stringify(name);
+    if (remember) {
+      localStorage.setItem(USER_NAME_KEY, value);
+      sessionStorage.removeItem(USER_NAME_KEY);
+    } else {
+      sessionStorage.setItem(USER_NAME_KEY, value);
+      localStorage.removeItem(USER_NAME_KEY);
     }
   } catch {
   }
@@ -220,6 +243,8 @@ async function logoutUser(onFinally) {
     try {
       localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(USER_KEY);
+      localStorage.removeItem(USER_NAME_KEY);
+      sessionStorage.removeItem(USER_NAME_KEY);
     } catch {
       // ignore
     }
@@ -228,12 +253,17 @@ async function logoutUser(onFinally) {
 }
 
 // DELETE /api/v1/member/withdraw
-async function withdrawAccount() {
-  await api.delete("/api/v1/member/withdraw");
+// 백엔드가 탈퇴 시 현재 비밀번호 검증을 한다면, 반드시 password를 같이 보내야
+// 서버에서 대조가 됩니다. (요청 바디로 전송 - 400/다른 에러가 나면 쿼리 파라미터
+// 방식(@RequestParam)으로 바꿔야 할 수도 있으니 백엔드팀 확인 필요)
+async function withdrawAccount(password) {
+  await api.delete("/api/v1/member/withdraw", { data: { password } });
   clearTokens();
   try {
     localStorage.removeItem(USER_KEY);
     sessionStorage.removeItem(USER_KEY);
+    localStorage.removeItem(USER_NAME_KEY);
+    sessionStorage.removeItem(USER_NAME_KEY);
   } catch {
     // ignore
   }
@@ -269,6 +299,7 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
         refreshToken,
         accessTokenExpiresIn,
         refreshTokenExpiresIn,
+        name,
       } = response.data;
 
       saveTokens({
@@ -278,8 +309,12 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
         refreshTokenExpiresIn,
       });
       rememberUser(normalizedEmail, remember);
+      // 로그인 응답에 name이 실제로 오는지 백엔드 확인 필요합니다.
+      // 안 오면 name이 undefined라 saveUserName이 그냥 아무것도 안 하고,
+      // HomeApp은 예전처럼 이메일로 폴백해서 보여줍니다.
+      saveUserName(name, remember);
 
-      onLoginSuccess({ email: normalizedEmail }, remember);
+      onLoginSuccess({ email: normalizedEmail, name }, remember);
     } catch (err) {
       console.error(err);
       if (err.response?.status === 401) {
@@ -1077,18 +1112,16 @@ export default function App() {
     return logoutUser(goToLogin);
   }
 
-  // App 컴포넌트 내 handleWithdraw 수정
-  async function handleWithdraw() {
-    if (!window.confirm("정말로 탈퇴하시겠습니까?")) return;
-
-    try {
-      await withdrawAccount(); // DELETE /api/v1/member/withdraw 호출
-      alert("탈퇴 처리가 완료되었습니다.");
-      goToLogin();
-    } catch (err) {
-      console.error("회원 탈퇴 실패:", err);
-      alert("회원 탈퇴 처리에 실패했습니다. (응답 상태: " + (err.response?.status || "네트워크 오류") + ")");
-    }
+  // HomeApp(src home)의 탈퇴 모달이 이미 비밀번호 + "탈퇴" 문구 입력으로
+  // 확인을 받으므로, 여기서 또 window.confirm을 띄우지 않습니다.
+  // (예전엔 여기서 confirm을 한 번 더 띄웠는데, 취소를 눌러도 에러 없이
+  // 함수가 끝나버려서 HomeApp이 성공으로 착각하고 "탈퇴 완료" 메시지를
+  // 띄우는 버그가 있었습니다.)
+  // 에러도 여기서 alert로 삼키지 않고 그대로 던져서, HomeApp의
+  // handleWithdrawConfirm이 실제 실패 메시지를 보여줄 수 있게 합니다.
+  async function handleWithdraw(password) {
+    await withdrawAccount(password);
+    goToLogin();
   }
 
   if (authView === "login") {

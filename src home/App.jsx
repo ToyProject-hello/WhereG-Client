@@ -75,8 +75,23 @@ export default function App({
   });
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+  // 로고/'홈' 클릭 시 Home을 강제로 새로 마운트시키기 위한 카운터.
+  // (이미 홈 화면일 때 로고를 눌러도 page state가 'home' -> 'home'으로
+  // 바뀌지 않아서 리렌더가 안 일어나고, Home 내부의 검색어 같은 상태가
+  // 그대로 남아있던 문제. key를 매번 바꿔서 완전히 새로 그리게 만듭니다.)
+  const [homeResetKey, setHomeResetKey] = useState(0);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
+      // wg_user_name: src/App.jsx가 로그인 시 저장하는 "이름" 전용 키.
+      // wg_user는 원래 "로그인 상태 유지"용으로 이메일이 들어가는 키라,
+      // 예전엔 이걸 그대로 이름처럼 써서 헤더/작성자 표시에 이메일이 나왔습니다.
+      // (백엔드 로그인 응답에 아직 name이 안 오면 wg_user_name이 비어있어서
+      // 결국 이메일로 폴백되니, 화면에 계속 이메일이 뜨면 로그인 API 응답에
+      // name 필드가 실제로 오는지 백엔드에 확인해야 합니다.)
+      const nameRaw =
+        localStorage.getItem('wg_user_name') || sessionStorage.getItem('wg_user_name');
+      if (nameRaw) return JSON.parse(nameRaw);
+
       const raw = localStorage.getItem('wg_user') || sessionStorage.getItem('wg_user');
       if (raw === 'WG_LOGGED_OUT') return null;
       return raw ? JSON.parse(raw) : null;
@@ -134,6 +149,8 @@ export default function App({
     setCurrentUser(null);
     localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
     sessionStorage.removeItem('wg_user');
+    localStorage.removeItem('wg_user_name');
+    sessionStorage.removeItem('wg_user_name');
     setPage('home');
   };
 
@@ -141,6 +158,9 @@ export default function App({
     if (!currentUser && ['noticeWrite', 'reportForm', 'claimForm'].includes(nextPage)) {
       showError('로그인 후 이용해주세요');
       return;
+    }
+    if (nextPage === 'home') {
+      setHomeResetKey((key) => key + 1);
     }
     setFocusTarget(options.focusTarget || null);
     setPage(nextPage);
@@ -779,7 +799,7 @@ export default function App({
         {(() => {
           switch (page) {
             case 'home':
-              return <Home onCardClick={goToPage} reports={reports} claims={claims} />;
+              return <Home key={homeResetKey} onCardClick={goToPage} reports={reports} claims={claims} />;
             case 'report':
               return <LostReport onCardClick={goToPage} reports={reports} />;
             case 'claim':
@@ -835,7 +855,7 @@ export default function App({
             case 'claimDetail':
               return <DetailPage key={selectedPost?.id || 'claim-empty'} post={selectedPost} type="claimDetail" onBack={() => goToPage('claim')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} deletePost={deletePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} focusTarget={focusTarget} />;
             default:
-              return <Home onCardClick={goToPage} />;
+              return <Home key={homeResetKey} onCardClick={goToPage} />;
           }
         })()}
       </main>
