@@ -565,9 +565,16 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     }
   }
 
+  // 백엔드 비밀번호 정책: 영문 + 숫자 + 특수문자를 모두 포함한 8자 이상
+  // (서버가 이 조건을 어기면 400을 주는데, 프론트에서 미리 안 막으면
+  // 회원가입 마지막 단계까지 다 가서야 에러를 받게 됨)
+  const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
   function passwordNext() {
-    if (password.length < 8) {
-      setPasswordError("비밀번호는 8자 이상이어야 합니다.");
+    if (!PASSWORD_RULE.test(password)) {
+      setPasswordError(
+        "비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야 합니다."
+      );
       return;
     }
 
@@ -802,6 +809,9 @@ function SignupFlow({ onBackToLogin, onComplete }) {
           <div className="form-area">
             <div className="input-group">
               <label>비밀번호</label>
+              <p className="input-hint">
+                영문, 숫자, 특수문자를 포함하여 8자 이상 입력해 주세요.
+              </p>
 
               <div className="input-box password-input">
                 <input
