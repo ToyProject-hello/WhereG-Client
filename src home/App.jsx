@@ -127,7 +127,7 @@ export default function App({
       }
     };
   }, []);
-  const isAdmin = currentUser === '관리자' || currentUser === 'admin';
+  const isAdmin = currentUser === 's26040@gsm.hs.kr' || currentUser === 's26057@gsm.hs.kr';
   const unreadCount = currentUser ? notifications.filter((n) => n.recipient === currentUser && !n.read).length : 0;
   const showStatus = (message, type = 'error') => {
     setStatusMessage({ message, type });
