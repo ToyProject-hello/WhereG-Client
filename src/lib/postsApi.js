@@ -66,7 +66,7 @@ export function mapApiPost(apiPost) {
   const id = pick(apiPost, ["postId", "id"]);
   const author = pick(
     apiPost,
-    ["writerName", "writer", "author", "nickname", "memberName", "userName"],
+    ["writerName", "writer", "author", "nickname", "memberName", "userName","email"],
     "작성자"
   );
   const createdAt = pick(apiPost, ["createdAt", "createdDate", "regDate", "createdTime"]);
