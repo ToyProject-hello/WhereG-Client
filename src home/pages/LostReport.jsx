@@ -36,9 +36,6 @@ export default function LostReport({ onCardClick, reports = [], loading = false,
         </div>
         <button type="submit" className="searchBtn">검색</button>
       </form>
-
-      {!isLoggedIn ? (
-        <p className="emptySearchMessage">로그인 후 게시글을 볼 수 있습니다</p>
       ) : loading ? (
         <p className="emptySearchMessage">불러오는 중...</p>
       ) : filteredData.length === 0 ? (
@@ -77,7 +74,7 @@ export default function LostReport({ onCardClick, reports = [], loading = false,
             <button className="pageBtn" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>{'>'}</button>
           </div>
         </>
-      )}
+      )
     </div>
   );
 }
