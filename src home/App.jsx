@@ -141,7 +141,7 @@ export default function App({
   // (로그인 안 한 상태에서 호출하면 401이 나므로, 애초에 토큰이 없으면
   // 요청을 보내지 않고 빈 목록으로 둡니다. -> 로그인 후 다시 로드됩니다.)
   //
-  // 백엔드에 contentType(LOST/FOUND) 필터가 따로 없어서, 일단 넉넉한
+  // 백엔드에 contentType(REPORT/FOUND) 필터가 따로 없어서, 일단 넉넉한
   // size로 한 번에 받아온 뒤 화면에서 LOST/FOUND로 나눕니다. 게시글이
   // 많아지면 백엔드에 필터/더 큰 페이지네이션을 요청하는 게 좋습니다.
   const loadPosts = async () => {
@@ -155,7 +155,7 @@ export default function App({
     try {
       const pageData = await listPosts({ page: 0, size: 100 });
       const posts = mapApiPostList(pageData);
-      setReports(posts.filter((p) => p.contentType === 'LOST'));
+      setReports(posts.filter((p) => p.contentType === 'REPORT'));
       setClaims(posts.filter((p) => p.contentType === 'FOUND'));
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);
@@ -209,7 +209,7 @@ export default function App({
     try {
       await createPost({
         title: post.title,
-        contentType: 'LOST',
+        contentType: 'REPORT',
         foundPlace: post.place,
         content: post.note,
       });
