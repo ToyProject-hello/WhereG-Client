@@ -1,6 +1,5 @@
 import "./App.css";
 import HomeApp from "../src home/App.jsx";
-import axios from "axios";
 
 import { FaLock, FaRegUser } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
@@ -16,29 +15,22 @@ import {
 
 import { GoCheckCircle } from "react-icons/go";
 
+import {
+  api,
+  publicApi,
+  saveTokens,
+  clearTokens,
+} from "./lib/apiClient";
+
 const USER_KEY = "wg_user";
-// USER_KEY("wg_user")는 "로그인 상태 유지"용으로 이메일을 저장하는 키인데,
-// HomeApp(src home)이 같은 키 이름을 "화면에 보여줄 사용자 이름"으로 착각해서
-// 그대로 읽어 쓰고 있었습니다. 그래서 헤더/작성자 표시에 이메일이 나왔던 것.
-// 이름은 이 별도 키에 저장해서 완전히 분리합니다.
 const USER_NAME_KEY = "wg_user_name";
 
-const ACCESS_TOKEN_KEY = "wg_access_token";
-const REFRESH_TOKEN_KEY = "wg_refresh_token";
-const ACCESS_EXPIRES_KEY = "wg_access_expires_at";
-const REFRESH_EXPIRES_KEY = "wg_refresh_expires_at";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://whereg.site";
-
-// 학과 UI 라벨 -> 백엔드 enum 값 매핑
-// 주의: 백엔드는 SW / IOT / AI 세 값만 허용합니다. ("스마트IoT과"는 IOT로 매핑)
 const DEPARTMENT_OPTIONS = [
   { label: "소프트웨어개발과", value: "SW" },
   { label: "스마트IoT과", value: "IOT" },
   { label: "AI과", value: "AI" },
 ];
 
-// 학년(grade) - 백엔드가 실제로 갖고 있는 필드입니다. ("기수"는 백엔드에 없음)
 const GRADE_OPTIONS = [
   { label: "1학년", value: 1 },
   { label: "2학년", value: 2 },
@@ -48,145 +40,6 @@ const GRADE_OPTIONS = [
 function normalizeEmail(value) {
   return value.trim().toLowerCase();
 }
-
-// ---- 토큰 저장/조회 --------------------------------------------------------
-function saveTokens({
-  accessToken,
-  refreshToken,
-  accessTokenExpiresIn,
-  refreshTokenExpiresIn,
-}) {
-  const now = Date.now();
-  try {
-    if (accessToken) {
-      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    }
-
-    if (refreshToken) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    }
-    if (accessTokenExpiresIn) {
-      localStorage.setItem(
-        ACCESS_EXPIRES_KEY,
-        String(now + accessTokenExpiresIn * 1000)
-      );
-    }
-    if (refreshTokenExpiresIn) {
-      localStorage.setItem(
-        REFRESH_EXPIRES_KEY,
-        String(now + refreshTokenExpiresIn * 1000)
-      );
-    }
-  } catch {
-    // 저장소를 사용할 수 없어도 현재 화면 흐름은 유지합니다.
-  }
-}
-
-function getAccessToken() {
-  try {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function getRefreshToken() {
-  try {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function clearTokens() {
-  try {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(ACCESS_EXPIRES_KEY);
-    localStorage.removeItem(REFRESH_EXPIRES_KEY);
-  } catch {
-    // ignore
-  }
-}
-
-// ---- axios 인스턴스: Authorization 헤더 자동 부착 + 401시 토큰 재발급 -------
-const api = axios.create({ baseURL: API_BASE_URL });
-
-// ---- 로그인 전에 쓰는 "공개" API 전용 인스턴스 ------------------------------
-// 회원가입, 이메일 인증번호 발급/확인 같은 API는 토큰이 필요 없는데,
-// 위 `api` 인스턴스를 그대로 쓰면 브라우저에 남아있는 만료/무효 토큰이
-// 실수로 붙어서 401 -> 재발급 실패 -> 강제 새로고침으로 이어질 수 있습니다.
-// (회원가입 인증메일이 "조용히" 안 가는 것처럼 보였던 원인)
-// 그래서 이런 공개 API는 인터셉터가 없는 별도 인스턴스로 호출합니다.
-const publicApi = axios.create({ baseURL: API_BASE_URL });
-
-api.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-let reissuePromise = null;
-
-async function reissueTokens() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new Error("refresh token이 없습니다.");
-  }
-
-  // 동시에 여러 요청이 401을 받아도 재발급 요청은 한 번만 나가도록 합니다.
-  if (!reissuePromise) {
-    reissuePromise = axios
-      .put(`${API_BASE_URL}/api/v1/auth/reissue`, null, {
-        headers: { "X-Refresh-Token": refreshToken },
-      })
-      .then((res) => {
-        saveTokens(res.data);
-        return res.data;
-      })
-      .finally(() => {
-        reissuePromise = null;
-      });
-  }
-
-  return reissuePromise;
-}
-
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const original = error.config;
-    const isAuthEndpoint =
-      original?.url?.includes("/auth/signin") ||
-      original?.url?.includes("/auth/signup") ||
-      original?.url?.includes("/auth/reissue");
-
-    if (error.response?.status === 401 && !original?._retry && !isAuthEndpoint) {
-      original._retry = true;
-      try {
-        await reissueTokens();
-        return api(original);
-      } catch {
-        clearTokens();
-
-        try {
-          localStorage.removeItem(USER_KEY);
-          sessionStorage.removeItem(USER_KEY);
-          localStorage.removeItem(USER_NAME_KEY);
-          sessionStorage.removeItem(USER_NAME_KEY);
-        } catch {
-          // ignore
-        }
-
-        window.location.reload();
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
 
 function rememberUser(identifier, remember) {
   try {
@@ -217,13 +70,6 @@ function saveUserName(name, remember) {
   }
 }
 
-// ---- 로그인 상태에서 쓰는 계정 관련 API -----------------------------------
-// 세 API 모두 `api` 인스턴스를 쓰므로 Authorization: Bearer {accessToken}
-// 헤더가 자동으로 붙습니다. (백엔드팀 확인 완료: 2024 테스트 스펙 기준)
-
-// PATCH /api/v1/auth/password
-// 비로그인 상태의 "비밀번호 찾기"가 아니라, 로그인된 사용자의 "비밀번호 변경" API입니다.
-// currentPassword를 알아야 하므로 마이페이지/설정 화면 등 로그인 후 진입하는 곳에서만 써야 합니다.
 async function changePassword(currentPassword, newPassword) {
   await api.patch("/api/v1/auth/password", {
     currentPassword,
@@ -252,10 +98,6 @@ async function logoutUser(onFinally) {
   }
 }
 
-// DELETE /api/v1/member/withdraw
-// 백엔드가 탈퇴 시 현재 비밀번호 검증을 한다면, 반드시 password를 같이 보내야
-// 서버에서 대조가 됩니다. (요청 바디로 전송 - 400/다른 에러가 나면 쿼리 파라미터
-// 방식(@RequestParam)으로 바꿔야 할 수도 있으니 백엔드팀 확인 필요)
 async function withdrawAccount(password) {
   await api.delete("/api/v1/member/withdraw", { data: { password } });
   clearTokens();
@@ -309,9 +151,6 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
         refreshTokenExpiresIn,
       });
       rememberUser(normalizedEmail, remember);
-      // 로그인 응답에 name이 실제로 오는지 백엔드 확인 필요합니다.
-      // 안 오면 name이 undefined라 saveUserName이 그냥 아무것도 안 하고,
-      // HomeApp은 예전처럼 이메일로 폴백해서 보여줍니다.
       saveUserName(name, remember);
 
       onLoginSuccess({ email: normalizedEmail, name }, remember);
@@ -425,12 +264,6 @@ function LoginPage({ onBackHome, onForgotPassword, onLoginSuccess, onSignup }) {
   );
 }
 
-// 참고: 현재 백엔드에는 "로그인 없이 이메일 인증만으로 비밀번호를 재설정"하는
-// API가 없습니다. (/api/v1/auth/email 은 되지만 email/verify는 빈 바디만 주고,
-// 비밀번호 변경 API는 로그인 + 현재 비밀번호가 반드시 필요합니다.)
-// 그래서 예전 코드처럼 "메일을 보냈습니다"라고 안내하면 실제로는 아무 것도
-// 일어나지 않는 거짓 성공 메시지가 됩니다. 백엔드에 재설정 기능이 추가되기
-// 전까지는 솔직하게 안내만 하도록 임시로 막아둡니다.
 function ForgotPasswordPage({ onBackToLogin }) {
   return (
     <div className="auth-page">
@@ -602,9 +435,6 @@ function SignupFlow({ onBackToLogin, onComplete }) {
     }
   }
 
-  // 백엔드 비밀번호 정책: 영문 + 숫자 + 특수문자를 모두 포함한 8자 이상
-  // (서버가 이 조건을 어기면 400을 주는데, 프론트에서 미리 안 막으면
-  // 회원가입 마지막 단계까지 다 가서야 에러를 받게 됨)
   const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   function passwordNext() {
@@ -630,11 +460,10 @@ function SignupFlow({ onBackToLogin, onComplete }) {
         name: name.trim(),
         email: normalizeEmail(email),
         password,
-        department, // 이미 SW/IOT/AI enum 값으로 저장되어 있음 (DEPARTMENT_OPTIONS 참고)
+        department,
         grade,
       });
 
-      // 서버가 실제로 계정을 만든 뒤에만 완료 화면으로 이동합니다.
       setPage("complete");
     } catch (err) {
       console.error(err);
@@ -1107,18 +936,10 @@ export default function App() {
     setHomeKey((key) => key + 1);
   }
 
-  // 로그아웃: 서버 요청 성공/실패와 무관하게 로컬 토큰을 지우고 로그인 화면으로 보냅니다.
   function handleLogout() {
     return logoutUser(goToLogin);
   }
 
-  // HomeApp(src home)의 탈퇴 모달이 이미 비밀번호 + "탈퇴" 문구 입력으로
-  // 확인을 받으므로, 여기서 또 window.confirm을 띄우지 않습니다.
-  // (예전엔 여기서 confirm을 한 번 더 띄웠는데, 취소를 눌러도 에러 없이
-  // 함수가 끝나버려서 HomeApp이 성공으로 착각하고 "탈퇴 완료" 메시지를
-  // 띄우는 버그가 있었습니다.)
-  // 에러도 여기서 alert로 삼키지 않고 그대로 던져서, HomeApp의
-  // handleWithdrawConfirm이 실제 실패 메시지를 보여줄 수 있게 합니다.
   async function handleWithdraw(password) {
     await withdrawAccount(password);
     goToLogin();
