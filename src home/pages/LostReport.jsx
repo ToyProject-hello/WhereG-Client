@@ -2,16 +2,8 @@ import { useState } from 'react';
 import { LuSearch } from 'react-icons/lu';
 import { filterBySearch } from '../utils/search';
 
-export default function LostReport({ onCardClick, reports = [] }) {
-  const fallback = Array.from({ length: 8 }, (_, index) => ({
-    id: `report-${index}`,
-    title: `제목 ${index + 1}`,
-    author: `작성자 ${index + 1}`,
-    date: `2026-06-${(index % 30) + 1}`,
-    status: '찾는중'
-  }));
-
-  const data = (reports && reports.length) ? reports : fallback;
+export default function LostReport({ onCardClick, reports = [], loading = false, isLoggedIn = true }) {
+  const data = reports;
 
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -45,8 +37,12 @@ export default function LostReport({ onCardClick, reports = [] }) {
         <button type="submit" className="searchBtn">검색</button>
       </form>
 
-      {filteredData.length === 0 ? (
-        <p className="emptySearchMessage">검색 결과가 없습니다</p>
+      {!isLoggedIn ? (
+        <p className="emptySearchMessage">로그인 후 게시글을 볼 수 있습니다</p>
+      ) : loading ? (
+        <p className="emptySearchMessage">불러오는 중...</p>
+      ) : filteredData.length === 0 ? (
+        <p className="emptySearchMessage">{searchKeyword ? '검색 결과가 없습니다' : '등록된 분실물 신고가 없습니다'}</p>
       ) : (
         <>
           <div className="cardGrid grid4">

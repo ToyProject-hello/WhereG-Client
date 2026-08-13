@@ -13,6 +13,8 @@ import NoticeDetail from './pages/NoticeDetail';
 import LostReportForm from './pages/LostReportForm';
 import LostClaimForm from './pages/LostClaimForm';
 import DetailPage from './pages/DetailPage';
+import { listPosts, createPost, deletePostApi, mapApiPostList } from '../src/lib/postsApi';
+import { hasAccessToken } from '../src/lib/apiClient';
 
 const sanitizeNotifications = (items) => (
   Array.isArray(items)
@@ -49,22 +51,11 @@ export default function App({
   onWithdraw,
 } = {}) {
   const [page, setPage] = useState('home');
-  const [reports, setReports] = useState(() => {
-    try {
-      const raw = localStorage.getItem('wg_reports');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [claims, setClaims] = useState(() => {
-    try {
-      const raw = localStorage.getItem('wg_claims');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  // 게시글(신고/제보)은 이제 localStorage가 아니라 서버 API(/api/v1/post)에서
+  // 가져옵니다. 아래 두 state는 "서버에서 받아온 목록의 화면용 캐시"입니다.
+  const [reports, setReports] = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [notices, setNotices] = useState(() => {
     try {
       const raw = localStorage.getItem('wg_notices');
@@ -145,6 +136,42 @@ export default function App({
     || fallback
   );
 
+  // ---- 게시글(신고/제보) 서버 연동 -----------------------------------------
+  // GET /api/v1/post 도 다른 API와 마찬가지로 JWT가 필요합니다.
+  // (로그인 안 한 상태에서 호출하면 401이 나므로, 애초에 토큰이 없으면
+  // 요청을 보내지 않고 빈 목록으로 둡니다. -> 로그인 후 다시 로드됩니다.)
+  //
+  // 백엔드에 contentType(LOST/FOUND) 필터가 따로 없어서, 일단 넉넉한
+  // size로 한 번에 받아온 뒤 화면에서 LOST/FOUND로 나눕니다. 게시글이
+  // 많아지면 백엔드에 필터/더 큰 페이지네이션을 요청하는 게 좋습니다.
+  const loadPosts = async () => {
+    if (!hasAccessToken()) {
+      setReports([]);
+      setClaims([]);
+      setPostsLoading(false);
+      return;
+    }
+    setPostsLoading(true);
+    try {
+      const pageData = await listPosts({ page: 0, size: 100 });
+      const posts = mapApiPostList(pageData);
+      setReports(posts.filter((p) => p.contentType === 'LOST'));
+      setClaims(posts.filter((p) => p.contentType === 'FOUND'));
+    } catch (error) {
+      console.error('게시글 목록 조회 실패:', error);
+      showError(getAccountErrorMessage(error, '게시글을 불러오지 못했습니다'));
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  // 최초 마운트 시, 그리고 로그인/로그아웃으로 currentUser가 바뀔 때마다
+  // 서버에서 게시글을 다시 불러옵니다.
+  useEffect(() => {
+    loadPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
+
   const completeLocalLogout = () => {
     setCurrentUser(null);
     localStorage.setItem('wg_user', 'WG_LOGGED_OUT');
@@ -170,16 +197,52 @@ export default function App({
     setSelectedPost(payload);
   };
 
-  const addReport = (post) => {
-    const next = [{ ...post, id: post.id || `r-${Date.now()}` }, ...reports];
-    setReports(next);
-    localStorage.setItem('wg_reports', JSON.stringify(next));
+  // LostReportForm/LostClaimForm이 넘겨주는 post 객체(title/author/date/
+  // status/image/place/note|feature)를 백엔드 게시글 작성 API 바디로 변환해서
+  // 보냅니다. 성공하면 서버 목록을 다시 불러와 화면을 최신 상태로 맞춥니다.
+  // (사진은 아직 서버로 안 보냅니다 - 위 postsApi.js 상단 주석 참고)
+  const addReport = async (post) => {
+    if (!currentUser) {
+      showError('로그인 후 이용해주세요');
+      return false;
+    }
+    try {
+      await createPost({
+        title: post.title,
+        contentType: 'LOST',
+        foundPlace: post.place,
+        content: post.note,
+      });
+      await loadPosts();
+      showSuccess('게시글이 등록되었습니다');
+      return true;
+    } catch (error) {
+      console.error('분실물 신고 등록 실패:', error);
+      showError(getAccountErrorMessage(error, '게시글 등록 중 오류가 발생했습니다'));
+      return false;
+    }
   };
 
-  const addClaim = (post) => {
-    const next = [{ ...post, id: post.id || `c-${Date.now()}` }, ...claims];
-    setClaims(next);
-    localStorage.setItem('wg_claims', JSON.stringify(next));
+  const addClaim = async (post) => {
+    if (!currentUser) {
+      showError('로그인 후 이용해주세요');
+      return false;
+    }
+    try {
+      await createPost({
+        title: post.title,
+        contentType: 'FOUND',
+        foundPlace: post.place,
+        content: post.feature,
+      });
+      await loadPosts();
+      showSuccess('게시글이 등록되었습니다');
+      return true;
+    } catch (error) {
+      console.error('분실물 제보 등록 실패:', error);
+      showError(getAccountErrorMessage(error, '게시글 등록 중 오류가 발생했습니다'));
+      return false;
+    }
   };
 
   const addNotice = (notice) => {
@@ -332,10 +395,12 @@ export default function App({
     return updated;
   };
 
-  const deletePost = (postType, postId) => {
+  // 삭제는 이제 DELETE /api/v1/post/{postId} 를 호출합니다.
+  // (DetailPage는 이 함수를 await 없이 호출하지만, 함수 자체는 비동기로
+  // 동작하고 성공/실패에 따라 알맞은 안내를 보여줍니다.)
+  const deletePost = async (postType, postId) => {
     const target = postType === 'report' ? reports : claims;
     const setter = postType === 'report' ? setReports : setClaims;
-    const key = postType === 'report' ? 'wg_reports' : 'wg_claims';
     const existing = target.find((p) => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
     if (!existing) {
       showError('해당 글을 찾을 수 없습니다');
@@ -345,9 +410,15 @@ export default function App({
       showError('권한이 없습니다');
       return false;
     }
+    try {
+      await deletePostApi(postId);
+    } catch (error) {
+      console.error('게시글 삭제 실패:', error);
+      showError(getAccountErrorMessage(error, '게시글 삭제 중 오류가 발생했습니다'));
+      return false;
+    }
     const next = target.filter((p) => p.id !== postId);
     setter(next);
-    localStorage.setItem(key, JSON.stringify(next));
     setSelectedPost(null);
     showSuccess('게시물이 삭제되었습니다');
     goToPage(postType === 'report' ? 'report' : 'claim');
@@ -799,11 +870,11 @@ export default function App({
         {(() => {
           switch (page) {
             case 'home':
-              return <Home key={homeResetKey} onCardClick={goToPage} reports={reports} claims={claims} />;
+              return <Home key={homeResetKey} onCardClick={goToPage} reports={reports} claims={claims} loading={postsLoading} isLoggedIn={!!currentUser} />;
             case 'report':
-              return <LostReport onCardClick={goToPage} reports={reports} />;
+              return <LostReport onCardClick={goToPage} reports={reports} loading={postsLoading} isLoggedIn={!!currentUser} />;
             case 'claim':
-              return <LostClaim onCardClick={goToPage} claims={claims} />;
+              return <LostClaim onCardClick={goToPage} claims={claims} loading={postsLoading} isLoggedIn={!!currentUser} />;
             case 'notice':
               return <Notice onWrite={(pageName) => {
                 if (!currentUser) {
@@ -847,9 +918,9 @@ export default function App({
                 focusTarget={focusTarget}
               />;
             case 'reportForm':
-              return <LostReportForm onSubmit={(post) => { addReport(post); goToPage('report'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('report')} />;
+              return <LostReportForm onSubmit={async (post) => { const ok = await addReport(post); if (ok) goToPage('report'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('report')} />;
             case 'claimForm':
-              return <LostClaimForm onSubmit={(post) => { addClaim(post); goToPage('claim'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('claim')} />;
+              return <LostClaimForm onSubmit={async (post) => { const ok = await addClaim(post); if (ok) goToPage('claim'); }} currentUser={currentUser} onRequireLogin={showError} onBack={() => goToPage('claim')} />;
             case 'reportDetail':
               return <DetailPage key={selectedPost?.id || 'report-empty'} post={selectedPost} type="reportDetail" onBack={() => goToPage('report')} addComment={addComment} addReply={addReply} deleteComment={deleteComment} deleteReply={deleteReply} updateComment={updateComment} updateReply={updateReply} updatePost={updatePost} deletePost={deletePost} currentUser={currentUser} isAdmin={isAdmin} onRequireLogin={showError} focusTarget={focusTarget} />;
             case 'claimDetail':

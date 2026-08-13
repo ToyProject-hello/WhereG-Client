@@ -2,25 +2,9 @@ import { useState } from 'react';
 import { LuSearch } from 'react-icons/lu';
 import { filterBySearch } from '../utils/search';
 
-const dummyReports = Array.from({ length: 4 }, (_, index) => ({
-  id: `report-${index}`,
-  title: '제목',
-  author: '작성자',
-  date: '날짜',
-  status: '찾는중'
-}));
-
-const dummyClaims = Array.from({ length: 4 }, (_, index) => ({
-  id: `claim-${index}`,
-  title: '제목',
-  author: '작성자',
-  date: '날짜',
-  status: '보관중'
-}));
-
-export default function Home({ onCardClick, reports = [], claims = [] }) {
-  const reportData = (reports && reports.length) ? reports : dummyReports;
-  const claimData = (claims && claims.length) ? claims : dummyClaims;
+export default function Home({ onCardClick, reports = [], claims = [], loading = false, isLoggedIn = true }) {
+  const reportData = reports;
+  const claimData = claims;
   const recentReports = reportData.slice(0, 4);
   const recentClaims = claimData.slice(0, 4);
   const [searchInput, setSearchInput] = useState('');
@@ -80,6 +64,10 @@ export default function Home({ onCardClick, reports = [], claims = [] }) {
             </div>
           )}
         </section>
+      ) : !isLoggedIn ? (
+        <p className="emptySearchMessage">로그인 후 게시글을 볼 수 있습니다</p>
+      ) : loading ? (
+        <p className="emptySearchMessage">불러오는 중...</p>
       ) : (
         <>
           <section className="section">
@@ -89,23 +77,27 @@ export default function Home({ onCardClick, reports = [], claims = [] }) {
                 더보기 &gt;
               </button>
             </div>
-            <div className="cardGrid">
-              {recentReports.map((item) => (
-                <div key={item.id} className="card" onClick={() => onCardClick('reportDetail', item)}>
-                  <div
-                    className="cardImagePlaceholder"
-                    style={item.image ? { backgroundImage: `url(${item.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-                    data-has-image={!!item.image}
-                  />
-                  <div className="cardContent">
-                    <h3 className="cardTitle">{item.title}</h3>
-                    <p className="cardMeta">{item.author}</p>
-                    <p className="cardMeta">{item.date}</p>
-                    <span className={`badge ${item.status === '완료' ? 'badgeCompleted' : 'badgeSearching'}`}>{item.status}</span>
+            {recentReports.length === 0 ? (
+              <p className="emptySearchMessage">등록된 분실물 신고가 없습니다</p>
+            ) : (
+              <div className="cardGrid">
+                {recentReports.map((item) => (
+                  <div key={item.id} className="card" onClick={() => onCardClick('reportDetail', item)}>
+                    <div
+                      className="cardImagePlaceholder"
+                      style={item.image ? { backgroundImage: `url(${item.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                      data-has-image={!!item.image}
+                    />
+                    <div className="cardContent">
+                      <h3 className="cardTitle">{item.title}</h3>
+                      <p className="cardMeta">{item.author}</p>
+                      <p className="cardMeta">{item.date}</p>
+                      <span className={`badge ${item.status === '완료' ? 'badgeCompleted' : 'badgeSearching'}`}>{item.status}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="section">
@@ -115,23 +107,27 @@ export default function Home({ onCardClick, reports = [], claims = [] }) {
                 더보기 &gt;
               </button>
             </div>
-            <div className="cardGrid">
-              {recentClaims.map((item) => (
-                <div key={item.id} className="card" onClick={() => onCardClick('claimDetail', item)}>
-                  <div
-                    className="cardImagePlaceholder"
-                    style={item.image ? { backgroundImage: `url(${item.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-                    data-has-image={!!item.image}
-                  />
-                  <div className="cardContent">
-                    <h3 className="cardTitle">{item.title}</h3>
-                    <p className="cardMeta">{item.author}</p>
-                    <p className="cardMeta">{item.date}</p>
-                    <span className={`badge ${item.status === '완료' ? 'badgeCompleted' : 'badgeKeeping'}`}>{item.status}</span>
+            {recentClaims.length === 0 ? (
+              <p className="emptySearchMessage">등록된 분실물 제보가 없습니다</p>
+            ) : (
+              <div className="cardGrid">
+                {recentClaims.map((item) => (
+                  <div key={item.id} className="card" onClick={() => onCardClick('claimDetail', item)}>
+                    <div
+                      className="cardImagePlaceholder"
+                      style={item.image ? { backgroundImage: `url(${item.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                      data-has-image={!!item.image}
+                    />
+                    <div className="cardContent">
+                      <h3 className="cardTitle">{item.title}</h3>
+                      <p className="cardMeta">{item.author}</p>
+                      <p className="cardMeta">{item.date}</p>
+                      <span className={`badge ${item.status === '완료' ? 'badgeCompleted' : 'badgeKeeping'}`}>{item.status}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </>
       )}
