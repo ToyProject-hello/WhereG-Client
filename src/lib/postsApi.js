@@ -61,7 +61,7 @@ export function mapApiPost(apiPost) {
   if (!apiPost) return null;
 
   const contentType = apiPost.contentType;
-  const isReport = contentType === "LOST"; // LOST = 분실물 신고, FOUND = 분실물 제보
+  const isReport = contentType === "REPORT"; // REPORT = 신고, FOUND = 제보
 
   const id = pick(apiPost, ["postId", "id"]);
   const author = pick(
