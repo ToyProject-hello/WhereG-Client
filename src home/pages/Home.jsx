@@ -64,8 +64,6 @@ export default function Home({ onCardClick, reports = [], claims = [], loading =
             </div>
           )}
         </section>
-      ) : !isLoggedIn ? (
-        <p className="emptySearchMessage">로그인 후 게시글을 볼 수 있습니다</p>
       ) : loading ? (
         <p className="emptySearchMessage">불러오는 중...</p>
       ) : (
