@@ -197,53 +197,55 @@ export default function App({
     setSelectedPost(payload);
   };
 
-  // LostReportForm/LostClaimForm이 넘겨주는 post 객체(title/author/date/
-  // status/image/place/note|feature)를 백엔드 게시글 작성 API 바디로 변환해서
-  // 보냅니다. 성공하면 서버 목록을 다시 불러와 화면을 최신 상태로 맞춥니다.
-  // (사진은 아직 서버로 안 보냅니다 - 위 postsApi.js 상단 주석 참고)
   const addReport = async (post) => {
-    if (!currentUser) {
-      showError('로그인 후 이용해주세요');
-      return false;
-    }
-    try {
-      await createPost({
-        title: post.title,
-        contentType: 'REPORT',
-        foundPlace: post.place,
-        content: post.note,
-      });
-      await loadPosts();
-      showSuccess('게시글이 등록되었습니다');
-      return true;
-    } catch (error) {
-      console.error('분실물 신고 등록 실패:', error);
-      showError(getAccountErrorMessage(error, '게시글 등록 중 오류가 발생했습니다'));
-      return false;
-    }
-  };
+  if (!currentUser) {
+    showError('로그인 후 이용해주세요');
+    return false;
+  }
+
+  try {
+    await createPost({
+      title: post.title,
+      contentType: 'REPORT',
+      foundPlace: post.place,
+      photoUrl: post.image,
+      content: post.note,
+    });
+
+    await loadPosts();
+    showSuccess('게시글이 등록되었습니다');
+    return true;
+  } catch (error) {
+    console.error('분실물 신고 등록 실패:', error);
+    showError(getAccountErrorMessage(error, '게시글 등록 중 오류가 발생했습니다'));
+    return false;
+  }
+};
 
   const addClaim = async (post) => {
-    if (!currentUser) {
-      showError('로그인 후 이용해주세요');
-      return false;
-    }
-    try {
-      await createPost({
-        title: post.title,
-        contentType: 'FOUND',
-        foundPlace: post.place,
-        content: post.feature,
-      });
-      await loadPosts();
-      showSuccess('게시글이 등록되었습니다');
-      return true;
-    } catch (error) {
-      console.error('분실물 제보 등록 실패:', error);
-      showError(getAccountErrorMessage(error, '게시글 등록 중 오류가 발생했습니다'));
-      return false;
-    }
-  };
+  if (!currentUser) {
+    showError('로그인 후 이용해주세요');
+    return false;
+  }
+
+  try {
+    await createPost({
+      title: post.title,
+      contentType: 'FOUND',
+      foundPlace: post.place,
+      photoUrl: post.image,
+      content: post.feature,
+    });
+
+    await loadPosts();
+    showSuccess('게시글이 등록되었습니다');
+    return true;
+  } catch (error) {
+    console.error('분실물 제보 등록 실패:', error);
+    showError(getAccountErrorMessage(error, '게시글 등록 중 오류가 발생했습니다'));
+    return false;
+  }
+};
 
   const addNotice = (notice) => {
     const next = [{ ...notice, id: notice.id || `n-${Date.now()}` }, ...notices];
