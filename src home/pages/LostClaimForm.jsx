@@ -1,18 +1,29 @@
 import { useState } from 'react';
 import { LuImage, LuChevronLeft } from 'react-icons/lu';
+import { uploadImageToCloudinary } from '../../src/lib/cloudinaryUpload';
 
 export default function LostClaimForm({ onSubmit, currentUser, onRequireLogin, onBack }) {
-  const [imageData, setImageData] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [name, setName] = useState('');
   const [place, setPlace] = useState('');
   const [feature, setFeature] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
-  const allFilled = imageData && name.trim() && place.trim();
+  const allFilled = imageFile && name.trim() && place.trim();
 
   const handleFile = (file) => {
-    if (!file) return setImageData(null);
+    setUploadError('');
+    if (!file) {
+      setImageFile(null);
+      setImagePreview(null);
+      return;
+    }
+
+    setImageFile(file);
     const reader = new FileReader();
-    reader.onload = (e) => setImageData(e.target.result);
+    reader.onload = (e) => setImagePreview(e.target.result);
     reader.readAsDataURL(file);
   };
 
@@ -28,8 +39,8 @@ export default function LostClaimForm({ onSubmit, currentUser, onRequireLogin, o
       <div className="formCard">
         <label className="formLabel">분실물 사진</label>
         <div className="uploadBox">
-          {imageData ? (
-            <img src={imageData} alt="preview" className="uploadPreview" />
+          {imagePreview ? (
+            <img src={imagePreview} alt="preview" className="uploadPreview" />
           ) : (
             <>
               <LuImage className="uploadImageIcon" size={28} />
@@ -45,6 +56,7 @@ export default function LostClaimForm({ onSubmit, currentUser, onRequireLogin, o
             style={{ display: 'none' }}
           />
         </div>
+        {uploadError && <p className="formErrorMessage">{uploadError}</p>}
 
         <label className="formLabel">분실물 이름<span className="requiredMark">*</span></label>
         <input value={name} onChange={(e) => setName(e.target.value)} type="text" placeholder="예) 에어팟 4" className="textInput" />
@@ -56,26 +68,39 @@ export default function LostClaimForm({ onSubmit, currentUser, onRequireLogin, o
         <input value={feature} onChange={(e) => setFeature(e.target.value)} type="text" placeholder="예) 하늘색 케이스" className="textInput" />
 
         <button
-          className={`${allFilled ? 'primaryButton' : 'disabledButton'} submitButton`}
-          onClick={() => {
-            if (!allFilled) return;
+          className={`${allFilled && !uploading ? 'primaryButton' : 'disabledButton'} submitButton`}
+          onClick={async () => {
+            if (!allFilled || uploading) return;
             if (!currentUser) {
               onRequireLogin && onRequireLogin('로그인 후 이용해주세요');
               return;
             }
-            const post = {
-              title: name,
-              author: currentUser,
-              date: new Date().toLocaleDateString('ko-KR'),
-              status: '보관중',
-              image: imageData,
-              place,
-              feature,
-            };
-            onSubmit && onSubmit(post);
+
+            setUploadError('');
+            setUploading(true);
+
+            try {
+              const photoUrl = await uploadImageToCloudinary(imageFile);
+
+              const post = {
+                title: name,
+                author: currentUser,
+                date: new Date().toLocaleDateString('ko-KR'),
+                status: '보관중',
+                image: photoUrl,
+                place,
+                feature,
+              };
+              onSubmit && onSubmit(post);
+            } catch (error) {
+              console.error('이미지 업로드 실패:', error);
+              setUploadError(error?.message || '이미지 업로드에 실패했습니다');
+            } finally {
+              setUploading(false);
+            }
           }}
         >
-          게시하기
+          {uploading ? '사진 업로드 중...' : '게시하기'}
         </button>
       </div>
     </div>
